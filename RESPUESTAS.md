@@ -42,3 +42,46 @@ Aspecto | Declarar (al compilar) | Solicitar (al ejecutar) |
 ¿Dónde / cómo en iOS? | En el archivo `Info.plist`, agregando las claves de uso correspondientes (por ejemplo `NSCameraUsageDescription`) acompañadas del texto que explica el motivo del uso. | Invocando las APIs de Objective-C/Swift o los módulos de React Native; iOS dispara el diálogo nativo automáticamente la primera vez que se llama al recurso.
 ¿Dónde / cómo en Expo? | En `app.json` (o `app.config.js`), configurando `android.permissions` para Android y los plugins de configuración (`plugins`) o `ios.infoPlist` para iOS. | Usando los hooks o métodos provistos por los módulos de Expo, como `useCameraPermissions()`, `requestCameraPermissionsAsync()` o la librería `expo-camera`/`expo-location`.
 ¿Qué pasa si se omite? | El sistema operativo bloquea la acción directamente o la app crashea al intentar solicitarlo, ya que no tiene la declaración previa exigida por el binario. | La aplicación no obtiene la autorización del usuario; al intentar invocar la cámara, GPS o hardware sensible, la llamada falla, arroja un error de permisos o devuelve datos vacíos/falsos.
+
+# A3. Verdadero o falso
+
+Indicá V o F y justificá las falsas.
+
+### a) El diálogo de permiso lo dibuja tu app con componentes de React Native. F
+
+-RTA: Porque el diálogo lo dibuja exclusivamente el sistema operativo (Android o iOS) a través de un proceso del sistema para evitar que las aplicaciones puedan falsificar, alterar o engañar al usuario en la solicitud de acceso.
+
+### b) En Expo, la fuente de verdad de los permisos es app.json (o app.config.ts), no el AndroidManifest.xml. V
+
+### c) Agregar un permiso nuevo en el Info.plist se puede publicar con una actualización OTA. F
+
+-RTA: Porque las actualizaciones OTA (Over-The-Air, como Expo Updates) solo actualizan el paquete de JavaScript y recursos estáticos. Modificar el `Info.plist` altera el código nativo compilado, por lo que exige generar un nuevo binario (`.ipa`) y volver a publicarlo a través del App Store / TestFlight.
+
+### d) Si tu código pide un permiso que no está en el manifiesto, Android igual muestra el diálogo. F
+
+-RTA: Porque Android ignora la solicitud en tiempo de ejecución o devuelve inmediatamente que el permiso fue denegado sin mostrar diálogo alguno, debido a que el sistema operativo exige que todo permiso peligroso esté declarado previamente en el manifiesto.
+
+### e) El paquete expo-permissions es la forma recomendada de pedir permisos en SDK 57. F
+
+-RTA: Porque el paquete `expo-permissions` quedó obsoleto (deprecated) y fue discontinuado hace varias versiones. La forma recomendada es utilizar los métodos y hooks específicos provistos directamente por cada módulo (por ejemplo, `useCameraPermissions()` de `expo-camera` o `requestForegroundPermissionsAsync()` de `expo-location`).
+
+### f) En iOS, las notificaciones no llevan texto de propósito en el Info.plist. V
+
+### g) Con acceso limitado a fotos, status vale 'granted' y el matiz está en accessPrivileges. V
+
+### h) Desinstalar y reinstalar la app es la forma confiable de volver a “sin decidir” en las dos plataformas. V
+
+## A4. Los estados de un permiso
+
+### a) Diagrama de estados de un permiso en Android y en iOS. ¿Cuál es la diferencia central entre las dos plataformas?
+
+![Diagrama de estados de permisos en Android e iOS](./Captura%20de%20pantalla%202026-10-18%20202227.png)
+
+### b) Completá qué devuelve Expo en cada estado:
+
+| Estado                             | status       | canAskAgain | ¿Puede aparecer el diálogo? |
+| :--------------------------------- | :----------- | :---------- | :-------------------------- |
+| Sin decidir                        | undetermined | true        | Sí                          |
+| Concedido                          | granted      | true        | No                          |
+| Denegado (se puede volver a pedir) | denied       | true        | Sí                          |
+| Bloqueado                          | denied       | false       | No                          |
