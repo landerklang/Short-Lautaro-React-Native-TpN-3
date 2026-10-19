@@ -85,3 +85,34 @@ Indicá V o F y justificá las falsas.
 | Concedido                          | granted      | true        | No                          |
 | Denegado (se puede volver a pedir) | denied       | true        | Sí                          |
 | Bloqueado                          | denied       | false       | No                          |
+
+# B1. Clasificá los permisos
+
+Indicá el tipo (de instalación / de tiempo de ejecución / especial) y cómo los obtiene la app.
+
+| Permiso                 | Tipo                                                      | ¿Cómo se obtiene?                                                                                                                                                                                               |
+| :---------------------- | :-------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| INTERNET                | De instalación (Normal)                                   | Se declara en el manifiesto (`AndroidManifest.xml`) y el sistema operativo lo concede automáticamente al momento de la instalación.                                                                             |
+| CAMERA                  | De tiempo de ejecución (Peligroso / Runtime)              | Se declara en el manifiesto y se solicita en código durante la ejecución; el usuario decide a través del diálogo nativo del sistema.                                                                            |
+| VIBRATE                 | De instalación (Normal)                                   | Se declara en el manifiesto (`AndroidManifest.xml`) y el sistema lo otorga de manera automática al instalar la app sin confirmación explícita.                                                                  |
+| SYSTEM_ALERT_WINDOW     | Especial                                                  | Requiere declaración en el manifiesto y dirigir al usuario a la pantalla dedicada de configuración del sistema (`Settings.ACTION_MANAGE_OVERLAY_PERMISSION`) para habilitar "Mostrar sobre otras aplicaciones". |
+| POST_NOTIFICATIONS      | De tiempo de ejecución (Runtime - a partir de Android 13) | Se declara en el manifiesto y se solicita en tiempo de ejecución mediante el diálogo emergente del sistema para permitir notificaciones.                                                                        |
+| ACCESS_NETWORK_STATE    | De instalación (Normal)                                   | Se declara en el archivo de configuración/manifiesto y el sistema lo aprueba automáticamente al instalar.                                                                                                       |
+| READ_CONTACTS           | De tiempo de ejecución (Peligroso / Runtime)              | Se declara en el manifiesto y se pide de forma interactiva en la app mediante el diálogo del sistema operativo en tiempo de ejecución.                                                                          |
+| SCHEDULE_EXACT_ALARM    | Especial                                                  | Se declara en el manifiesto y, a partir de Android 13/14, puede requerir que la persona usuaria lo conceda en una pantalla especial de configuración del sistema ("Alarmas y recordatorios").                   |
+| RECORD_AUDIO            | De tiempo de ejecución (Peligroso / Runtime)              | Se declara en el manifiesto y se solicita dinámicamente en tiempo de ejecución con la confirmación expresa del usuario mediante diálogo emergente.                                                              |
+| MANAGE_EXTERNAL_STORAGE | Especial                                                  | Se declara en el manifiesto y exige enviar al usuario a la vista de ajustes avanzados del sistema (`Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION`) para otorgar acceso a todos los archivos.              |
+
+# B2. Grupos y nombres
+
+### a) ¿Qué es un grupo de permisos? Si la app pide ACCESS_FINE_LOCATION y ACCESS_COARSE_LOCATION juntos, ¿cuántos diálogos ve la persona?
+
+-RTA: Es un agrupamiento lógico que hace Android de varios permisos individuales que están relacionados con una misma capacidad o recurso del dispositivo (por ejemplo, el grupo `LOCATION`, `CAMERA`),la persona ve un solo diálogo.
+
+### b) ¿Qué prefijo lleva el nombre completo de un permiso? Escribí el nombre completo del permiso de cámara.
+
+-RTA: El prefijo Lleva android.permission y el nombre completo es android.permission.CAMERA
+
+### c) ¿Qué son los permisos de firma (signature)? ¿Por qué no se usan en apps comunes?
+
+-RTA: Son permisos de seguridad avanzada definidos con `android:protectionLevel="signature"`. El sistema operativo los otorga automáticamente, sin pedir confirmación al usuario, únicamente si la app que los solicita está firmada con la misma clave criptográfica. Porque hay imcompatiblidad de firmas debido a que esta pensados para la comunicacion interna entre aplicaciones de un mismo desarrollador.
