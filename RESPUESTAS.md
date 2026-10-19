@@ -116,3 +116,34 @@ Indicá el tipo (de instalación / de tiempo de ejecución / especial) y cómo l
 ### c) ¿Qué son los permisos de firma (signature)? ¿Por qué no se usan en apps comunes?
 
 -RTA: Son permisos de seguridad avanzada definidos con `android:protectionLevel="signature"`. El sistema operativo los otorga automáticamente, sin pedir confirmación al usuario, únicamente si la app que los solicita está firmada con la misma clave criptográfica. Porque hay imcompatiblidad de firmas debido a que esta pensados para la comunicacion interna entre aplicaciones de un mismo desarrollador.
+
+# B3. Leé el manifiesto
+
+# Este es el AndroidManifest.xml que generó npx expo prebuild. Observalo y respondé:
+
+Taller Complementario – React Native II · Instituto Politécnico Formosa · Trabajo Práctico N° 3 3
+android/app/src/main/AndroidManifest.xml (generado)
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+ xmlns:tools="http://schemas.android.com/tools">
+<uses-permission android:name="android.permission.INTERNET" />
+<uses-permission android:name="android.permission.CAMERA" />
+<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+ android:maxSdkVersion="32" />
+<uses-permission android:name="android.permission.RECORD_AUDIO"
+ tools:node="remove" />
+</manifest>
+
+a) ¿Qué permisos se conceden solos al instalar y cuáles hay que pedir además en tiempo de
+ejecución?
+
+RTA: Los permisos que se conceden al instalar son( `android.permission.INTERNET`) y a los que se deben de pedir en tiempo de ejecucion son (`android.permission.CAMERA`,`android.permission.ACCESS_COARSE_LOCATION`,`android.permission.ACCESS_FINE_LOCATION`,`android.permission.POST_NOTIFICATIONS`,`android.permission.READ_EXTERNAL_STORAGE`)
+
+b) ¿Qué significa android:maxSdkVersion="32"? ¿Qué permisos reemplazan a
+READ_EXTERNAL_STORAGE desde Android 13?
+
+<!-- si son superior a la version indicada el sistema igrona por completo esta declaracion y la aplicacion no solicita este permiso -->
+
+RTA: Significa que le esta indicando al sistema operativo que este permiso solo debe solicitarse y otorgarse en dispositivos cuya versión de Android sea como máximo el nivel de API 32.Los permisos que reemplaza a READ_EXTERNAL_STORAGE desde Android 13 se dividen segun su permiso granulares y especificos segun el tipo de contenido son:`android.permission.READ_MEDIA_IMAGES` (para acceder a fotografías e imágenes),`android.permission.READ_MEDIA_VIDEO` (para acceder a videos) y por ultimo `android.permission.READ_MEDIA_AUDIO` (para acceder a música y archivos de audio).
