@@ -291,4 +291,142 @@ Evaluá cada texto para `NSLocationWhenInUseUsageDescription` según la pauta 5.
 
 ---
 
-## C4. Acceso parcial y granularidad
+## C4. Acceso parcial y gradual
+
+Para cada caso indicá desde qué versión de iOS existe y qué valor o función de Expo lo detecta o lo pide.
+
+| Caso                                                      | iOS      | En Expo                                                                                                                                                                                    |
+| :-------------------------------------------------------- | :------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Fotos limitadas (“Seleccionar fotos”)**                 | iOS 14   | `status: 'granted'` con `accessPrivileges: 'limited'` en `ImagePicker.getMediaLibraryPermissionsAsync()` / `requestMediaLibraryPermissionsAsync()`.                                        |
+| **Ubicación aproximada (interruptor “Precisa”)**          | iOS 14   | `Location.requestForegroundPermissionsAsync()`; se detecta evaluando `accuracy` en el objeto devuelto por `Location.getForegroundPermissionsAsync()` (`accuracy: 'reduced'` o `'coarse'`). |
+| **“Permitir una vez” (ubicación)**                        | iOS 13   | `Location.requestForegroundPermissionsAsync()`; devuelve `status: 'granted'`, pero el permiso expira en cuanto la app finaliza su sesión actual.                                           |
+| **Ubicación escalonada: de “al usar la app” a “Siempre”** | iOS 13   | Se pide primero `Location.requestForegroundPermissionsAsync()` y, una vez concedido, se invoca `Location.requestBackgroundPermissionsAsync()`.                                             |
+| **Notificaciones provisionales**                          | iOS 12   | `Notifications.requestPermissionsAsync({ ios: { allowAnnouncements: true, provideAppNotificationSettings: true } })` usando el flag de autorización provisional nativo en iOS.             |
+| **Rastreo entre apps (App Tracking Transparency)**        | iOS 14.5 | `requestTrackingPermissionsAsync()` y `getTrackingPermissionsAsync()` de la librería `expo-tracking-transparency`.                                                                         |
+
+### ¿Qué versión mínima de iOS requiere Expo SDK 57? ¿Qué consecuencia práctica tiene eso sobre la tabla anterior?
+
+- **Versión mínima de iOS:**  
+  Requiere como mínimo **iOS 16.0** (o superior).
+
+- **Consecuencia práctica sobre la tabla anterior:**  
+  Todas las funciones de granularidad y acceso parcial mencionadas en la tabla (como fotos limitadas de iOS 14, ubicación precisa/aproximada de iOS 14, ATT de iOS 14.5 y ubicación en un solo uso de iOS 13) **están garantizadas al 100% en todos los dispositivos que corran la app**.
+
+  Esto significa que ya **no es necesario escribir bifurcaciones condicionales por versión de sistema operativo** (como verificar si el dispositivo soporta fotos limitadas o tracking) para dispositivos viejos, ya que ningún iPhone que ejecute una app construida con Expo SDK 57 tendrá una versión inferior a iOS 16.
+
+## C5. Android vs iOS, lado a lado
+
+| Aspecto                                  | Android                                                                         | iOS                                                                                                 |
+| :--------------------------------------- | :------------------------------------------------------------------------------ | :-------------------------------------------------------------------------------------------------- |
+| **¿Dónde se declara?**                   | `AndroidManifest.xml` (etiqueta `<uses-permission>`).                           | `Info.plist` (mediante claves `*UsageDescription`).                                                 |
+| **Texto en el diálogo**                  | Fijo y definido por el sistema operativo (no editable).                         | Título y botones fijos; el cuerpo (_purpose string_) lo redacta el desarrollador.                   |
+| **Oportunidades para preguntar**         | Múltiples (hasta 2 rechazos consecutivos antes de bloquearse).                  | Una sola vez programáticamente.                                                                     |
+| **“Solo esta vez” / “Permitir una vez”** | Disponible desde Android 11 para ubicación, cámara y micrófono.                 | Disponible desde iOS 13 para ubicación.                                                             |
+| **Notificaciones**                       | Permiso en tiempo de ejecución desde Android 13 (`POST_NOTIFICATIONS`).         | Se solicita en tiempo de ejecución con `UNUserNotificationCenter` (no lleva clave en `Info.plist`). |
+| **Ubicación en segundo plano**           | Permiso separado (`ACCESS_BACKGROUND_LOCATION`) pedido tras el de primer plano. | Proceso en dos pasos escalonados: primero "Al usar la app" y luego "Siempre".                       |
+| **Si falta la declaración**              | Arroja `SecurityException` en tiempo de ejecución al invocar la API.            | Crashea de inmediato en ejecución o es rechazada por App Store (`ITMS-90683`).                      |
+
+# Parte D · Expo: una API, dos plataformas
+
+## D1. Módulos y funciones
+
+Indicá qué módulo de Expo y qué hook o función de permiso usarías en cada caso.
+
+| Necesidad                                       | Módulo                                             | Hook / función de permiso                                                                                             |
+| :---------------------------------------------- | :------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------- |
+| **Escanear un QR con la cámara**                | `expo-camera`                                      | `useCameraPermissions()` / `requestCameraPermissionsAsync()`                                                          |
+| **Grabar video con sonido**                     | `expo-camera` (requiere también permisos de audio) | `useCameraPermissions()` y `Audio.usePermissions()` (o `Audio.requestPermissionsAsync()` de `expo-audio` / `expo-av`) |
+| **Mostrar farmacias cercanas**                  | `expo-location`                                    | `useForegroundPermissions()` / `requestForegroundPermissionsAsync()`                                                  |
+| **Seguir un envío con la app en segundo plano** | `expo-location`                                    | `useBackgroundPermissions()` / `requestBackgroundPermissionsAsync()`                                                  |
+| **Mostrar un recordatorio**                     | `expo-notifications`                               | `usePermissions()` / `requestPermissionsAsync()`                                                                      |
+| **Grabar una nota de voz**                      | `expo-audio` (o `expo-av`)                         | `usePermissions()` / `requestRecordingPermissionsAsync()`                                                             |
+| **Galería propia dentro de la app**             | `expo-media-library`                               | `usePermissions()` / `requestPermissionsAsync()`                                                                      |
+| **Publicidad personalizada entre apps (iOS)**   | `expo-tracking-transparency`                       | `useTrackingPermissions()` / `requestTrackingPermissionsAsync()`                                                      |
+
+### Un tutorial usa `import * as Permissions from 'expo-permissions'`. ¿Qué te dice eso sobre el tutorial?
+
+- **El tutorial está desactualizado y obsoleto:**  
+  El paquete centralizado `expo-permissions` fue marcado como _deprecated_ en Expo SDK 41 y eliminado por completo en Expo SDK 45.
+
+- **Qué implica en versiones modernas:**  
+  En las versiones actuales de Expo, cada módulo gestiona sus propios permisos de forma modular e independiente a través de sus propios métodos y hooks (por ejemplo, `useCameraPermissions()` dentro de `expo-camera`, o `useForegroundPermissions()` dentro de `expo-location`). El código de ese tutorial fallará al intentar instalar o importar la librería.
+
+## D2. Consultar, pedir y el hook
+
+### a) ¿Qué diferencia hay entre `get…PermissionsAsync()` y `request…PermissionsAsync()`? ¿Cuál puede mostrar un diálogo?
+
+- **Diferencia:** `get…PermissionsAsync()` solo consulta el estado actual del permiso en el sistema operativo sin interactuar con el usuario. En cambio, `request…PermissionsAsync()` pide activamente el acceso al sistema.
+- **Cuál muestra el diálogo:** Únicamente **`request…PermissionsAsync()`** tiene la capacidad de mostrar el diálogo nativo (siempre que el permiso no esté bloqueado permanentemente).
+
+---
+
+### b) El hook devuelve tres elementos. ¿Qué es cada uno? ¿Qué vale permiso en el primer render y qué tiene que mostrar la pantalla mientras tanto?
+
+- **Los tres elementos:**
+  1. `permiso`: Objeto con el estado del permiso (`status`, `granted`, `canAskAgain`, etc.).
+  2. `pedirPermiso`: Función asíncrona para solicitar el permiso.
+  3. `consultarPermiso`: Función asíncrona para volver a chequear el estado sin mostrar diálogo.
+- **Valor en el primer render:** Vale **`null`** (mientras se resuelve la consulta inicial al sistema operativo de fondo).
+- **Qué debe mostrar la pantalla:** Una vista de carga transitoria (como un `ActivityIndicator` o pantalla en blanco) para evitar parpadeos de interfaz o evaluar permisos antes de tiempo.
+
+---
+
+### c) Si `canAskAgain` es `false`, ¿qué pasa al llamar a `request…()`? ¿Qué problema aparece si se lo llama en un bucle?
+
+- **Qué pasa al llamar a `request…()`:** Se resuelve inmediatamente en estado denegado (`status: 'denied'`), sin mostrar ningún diálogo nativo en pantalla.
+- **Problema si se llama en un bucle:** Provoca un bucle infinito de resoluciones automáticas que traba el hilo de ejecución de JavaScript, congela la app y drena la batería del dispositivo.
+
+## D3. Leé la respuesta
+
+Para cada `PermissionResponse`, indicá qué debería hacer la app.
+
+| Respuesta                                                | Qué hace la app                                                                                                                            |
+| :------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------- |
+| `null`                                                   | Muestra un indicador de carga (`ActivityIndicator` o _spinner_) mientras espera la respuesta asíncrona inicial del sistema operativo.      |
+| `{ status: 'granted', granted: true }`                   | Habilita y ejecuta la funcionalidad protegida normalmente (acceso total).                                                                  |
+| `{ status: 'undetermined', canAskAgain: true }`          | Presenta la pantalla de contexto previo (_pre-permission_) o llama a `request...()` para abrir el diálogo nativo del sistema.              |
+| `{ status: 'denied', canAskAgain: true }`                | Explica en pantalla por qué se necesita el recurso y ofrece un botón propio para volver a intentar pedirlo con `request...()`.             |
+| `{ status: 'denied', canAskAgain: false }`               | Informa que el permiso está bloqueado y muestra un botón que redirige a los Ajustes del sistema mediante `Linking.openSettings()`.         |
+| `{ status: 'granted', accessPrivileges: 'limited' }`     | Opera con las fotos seleccionadas por el usuario y ofrece una opción en la UI para gestionar o sumar más fotos a la selección.             |
+| `{ status: 'granted', android: { accuracy: 'coarse' } }` | Adapta la funcionalidad a un radio aproximado (degradación elegante) o explica por qué requiere activar la precisión si es imprescindible. |
+
+---
+
+### ¿Cuáles son los dos campos que deciden casi todo? ¿Qué pregunta responde cada uno?
+
+1. **`granted` (o `status`):**
+   - **Pregunta que responde:** _¿Tengo acceso al recurso en este momento?_ (Define si el código puede invocar la API protegida).
+
+2. **`canAskAgain`:**
+   - **Pregunta que responde:** _¿Puedo volver a mostrar el diálogo nativo del sistema?_ (Define si se llama a `request...()` o si se debe redirigir a `Linking.openSettings()`).
+
+## D4. Simulación del ciclo completo
+
+### Android 14, app recién instalada, `expo-location`
+
+| #     | Acción                                                                                       | status                                                                                                                                                               | canAskAgain | ¿Diálogo? |
+| :---- | :------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :---------- | :-------- |
+| **1** | `getForegroundPermissionsAsync()`                                                            | `undetermined`                                                                                                                                                       | `true`      | No        |
+| **2** | `requestForegroundPermissionsAsync()` → "No permitir"                                        | `denied`                                                                                                                                                             | `true`      | Sí        |
+| **3** | `requestForegroundPermissionsAsync()` → "No permitir"                                        | `denied`                                                                                                                                                             | `false`     | Sí        |
+| **4** | `requestForegroundPermissionsAsync()`                                                        | `denied`                                                                                                                                                             | `false`     | No        |
+| **5** | `Linking.openSettings()` → habilita "Mientras la app está en uso" → vuelve y la app consulta | `granted`                                                                                                                                                            | `true`      | No        |
+| **6** | Igual que el 5, pero la app no vuelve a consultar: ¿qué muestra?                             | _Muestra el estado anterior en memoria (`denied`), manteniendo la pantalla bloqueada hasta que se monte de nuevo el componente o se ejecute una consulta explícita._ | —           | No        |
+
+---
+
+### Repetí los pasos 1 a 4 en iOS. ¿En qué paso cambia el resultado y por qué?
+
+- **Paso 1:** `undetermined` \| `canAskAgain: true` \| Diálogo: No.
+- **Paso 2:** `denied` \| `canAskAgain: false` \| Diálogo: Sí.
+- **Paso 3:** `denied` \| `canAskAgain: false` \| Diálogo: No.
+- **Paso 4:** `denied` \| `canAskAgain: false` \| Diálogo: No.
+
+- **¿En qué paso cambia y por qué?:**  
+  Cambia en el **Paso 2**. En iOS rige la política estricta de un solo intento; tras el primer rechazo, `canAskAgain` pasa inmediatamente a `false` (en Android esto recién ocurre tras el segundo rechazo en el Paso 3).
+
+---
+
+### ¿Qué pasa en iOS si la persona elige “Permitir una vez” y después cierra y reabre la app?
+
+Al cerrar la app finaliza la sesión autorizada. Al reabrirla, el permiso vuelve automáticamente al estado inicial **`undetermined`** con **`canAskAgain: true`**, por lo que la app puede volver a presentar el diálogo nativo cuando lo solicite.
