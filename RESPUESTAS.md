@@ -136,14 +136,159 @@ android/app/src/main/AndroidManifest.xml (generado)
  tools:node="remove" />
 </manifest>
 
-a) ¿Qué permisos se conceden solos al instalar y cuáles hay que pedir además en tiempo de
-ejecución?
+### a) ¿Qué permisos se conceden solos al instalar y cuáles hay que pedir además en tiempo de ejecución?
 
 RTA: Los permisos que se conceden al instalar son( `android.permission.INTERNET`) y a los que se deben de pedir en tiempo de ejecucion son (`android.permission.CAMERA`,`android.permission.ACCESS_COARSE_LOCATION`,`android.permission.ACCESS_FINE_LOCATION`,`android.permission.POST_NOTIFICATIONS`,`android.permission.READ_EXTERNAL_STORAGE`)
 
-b) ¿Qué significa android:maxSdkVersion="32"? ¿Qué permisos reemplazan a
-READ_EXTERNAL_STORAGE desde Android 13?
+### b) ¿Qué significa android:maxSdkVersion="32"? ¿Qué permisos reemplazan a READ_EXTERNAL_STORAGE desde Android 13?
 
 <!-- si son superior a la version indicada el sistema igrona por completo esta declaracion y la aplicacion no solicita este permiso -->
 
 RTA: Significa que le esta indicando al sistema operativo que este permiso solo debe solicitarse y otorgarse en dispositivos cuya versión de Android sea como máximo el nivel de API 32.Los permisos que reemplaza a READ_EXTERNAL_STORAGE desde Android 13 se dividen segun su permiso granulares y especificos segun el tipo de contenido son:`android.permission.READ_MEDIA_IMAGES` (para acceder a fotografías e imágenes),`android.permission.READ_MEDIA_VIDEO` (para acceder a videos) y por ultimo `android.permission.READ_MEDIA_AUDIO` (para acceder a música y archivos de audio).
+
+### c) ¿Qué hace tools:node="remove"? Escribí el fragmento de app.json que lo genera.
+
+RTA:Lo que hace es indicarle a las herramientas de compilación de Gradle que eliminen por completo ese elemento del `AndroidManifest.xml` final empaquetado, incluso si alguna librería o dependencia de terceros lo incluyó en su propio manifiesto.
+
+_Fragmento_
+{
+"expo": {
+"android": {
+"blockedPermissions": [
+"android.permission.RECORD_AUDIO"
+]
+}
+}
+}
+
+### d) Necesitás agregar SCHEDULE_EXACT_ALARM, que ninguna librería declara. ¿En qué propiedad de app.json va?
+
+RTA: Va dentro del arreglo de la propiedad `android.permissions`.
+ejemplo de codigo
+
+```json
+{
+  "expo": {
+    "android": {
+      "permissions": ["android.permission.SCHEDULE_EXACT_ALARM"]
+    }
+  }
+}
+```
+
+### e) ¿Por qué en Expo no conviene editar este archivo a mano? ¿Funciona blockedPermissions en Expo Go?
+
+RTA:Porque En el flujo de trabajo gestionado de Expo, la carpeta `android/` y el archivo `AndroidManifest.xml` son artefactos generados dinámicamente a partir de la configuración definida en `app.json`,si se editan a mano, cualquier ejecución posterior de comandos como `npx expo prebuild --clean` o los procesos de compilación en la nube (EAS Build) sobreescribirán por completo el archivo.No, no funciona porque la aplicacion expo go ya viene todo configurado los permisos nativo y si se quiere configurar `blockedPermissions` solo funcionara si se genera un binario personalizado.
+
+# B4. Así pregunta Android
+
+### a) ¿Se puede poner texto propio dentro del diálogo de Android? Entonces, ¿dónde tenés que explicar para qué usás el permiso?
+
+Rta:No, Porque los diálogo emergente es 100% nativo y gestionado por el sistema operativo Android. La aplicación no puede alterar su diseño, títulos, botones ni inyectar texto explicativo personalizado.Se debe explicar dentro de la propia interfaz de la app antes de invocar la API del sistema, mediante una pantalla explicativa previa. También se recomienda pedir el permiso en contexto de uso (por ejemplo, mostrar el cartel justo al tocar el botón de "Tomar foto") para que el usuario entienda claramente la necesidad del recurso antes de ver el diálogo oficial.
+
+### b) ¿Qué diferencia hay entre “Mientras la app está en uso” y “Solo esta vez”? ¿Para qué permisos existe esta última opción?
+
+RTA:La diferencia que hay entre mientras la app está en uso y el solo esta ves es que **mientra la app esta en uso** otorga el acceso únicamente mientras la aplicación tenga una actividad visible en primer plano (o ejecute un servicio en primer plano debidamente notificado). El permiso persiste entre sesiones sucesivas mientras la app esté abierta,**Mientras que el solo esta ves** concede un acceso temporal y de sesión única. Cuando la app pasa a segundo plano o su proceso se detiene durante un tiempo considerable, el permiso caduca automáticamente y vuelve al estado sin decidir.Existe para los permisos mas sensibles en materia de privacidad en tiempo real como puede ser la ubicacion, camara y microfono
+
+### c) En Android 11+, ¿qué pasa si la persona toca “No permitir” dos veces? ¿Qué valor toma canAskAgain?
+
+RTA:Lo que ocurre es que el sistema operativo interpreta el doble rechazo consecutivo como un "No volver a preguntar" implícito. A partir de ese momento, Android suprime permanentemente el diálogo nativo para ese permiso.El valor que toma es `false` (el estado en Expo pasa a bloqueado con `status: 'denied'` y `canAskAgain: false`). Si la app vuelve a llamar a la función para solicitar el permiso, la promesa resolverá denegada de forma inmediata sin mostrar ninguna interfaz.
+
+### d) La ubicación aproximada tiene una precisión de unos 3 km². Dá un ejemplo de función que anda bien con ella y otro de una que no.
+
+RTA:Las funciones que anda bien son las que se utilizan para pronostica el clima o la de seleccion regional de noticias ya que para saber las temperatura actual o las condiciones meteorologica basta con conocer la ciudad o la zona aproximada en donde se encuentra la persona, y las funciones que no andan bien son las de gps para conducir o las de transporte de pasajero ya que la precision debe de ser exacta para que puede ejerser su funcionadad de forma correcta
+
+### e) Si la persona revoca un permiso desde Ajustes mientras la app está abierta, ¿qué hace Android con el proceso de la app?
+
+RTA:Lo que hace android es realizar un proceso llamado `SIGKILL` esto lo hace como una medida de seguridad y consistencia arquitectónica. Al destruir el proceso, el sistema se asegura de purgar de la memoria cualquier objeto, hilo o puntero que estuviera reteniendo hardware sensible de forma activa y cuando la persona usuaria regresa a la app, esta se reinicia desde cero (_cold start_) obligando al código a evaluar nuevamente el estado actual de los permisos.
+
+# B5. Android, versión por versión
+
+Completá en qué versión apareció cada cambio y qué implica para tu código.
+
+| Cambio                                                               | Versión (API)                                                  | Qué implica para el código                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| :------------------------------------------------------------------- | :------------------------------------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Nacen los permisos en tiempo de ejecución**                        | Android 6.0 (API 23 - Marshmallow)                             | Ya no alcanza con declarar los permisos en el manifiesto para que se concedan al instalar. El código debe comprobar dinámicamente si el permiso está otorgado antes de usar una API sensible y solicitarlo explícitamente en ejecución manejando el resultado asíncrono.                                                                                                                                                                             |
+| **La ubicación en segundo plano pasa a ser un permiso aparte**       | Android 10 (API 29 - Q)                                        | Se separa `ACCESS_BACKGROUND_LOCATION` de la ubicación en primer plano. No se pueden pedir juntos en el mismo diálogo; el código debe solicitar primero la ubicación en primer plano y recién después, en un paso independiente con justificación clara, pedir la de segundo plano (que en versiones posteriores incluso deriva a Ajustes).                                                                                                          |
+| **Dos rechazos equivalen a “no volver a preguntar”**                 | Android 11 (API 30 - R)                                        | Si la persona usuaria presiona "No permitir" dos veces consecutivas, el sistema bloquea el diálogo nativo (`canAskAgain: false`). El código no debe intentar pedirlo en bucle; tiene que detectar este estado y ofrecer un botón o mensaje que redirija a la pantalla de Ajustes del sistema (`Linking.openSettings()`).                                                                                                                             |
+| **Ubicación precisa o aproximada**                                   | Android 12 (API 31 - S)                                        | Se deben solicitar obligatoriamente juntos `ACCESS_FINE_LOCATION` y `ACCESS_COARSE_LOCATION`. La app debe estar preparada técnicamente para funcionar con degradación elegante si el usuario elige solo la opción de ubicación aproximada (_Approximate_).                                                                                                                                                                                           |
+| **Las notificaciones pasan a ser un permiso (`POST_NOTIFICATIONS`)** | Android 13 (API 33 - Tiramisu)                                 | Enviar notificaciones deja de estar habilitado por defecto. Hay que declarar `POST_NOTIFICATIONS` en el manifiesto y solicitar el permiso explícitamente en tiempo de ejecución antes de programar o disparar notificaciones locales o remotas. Si el usuario lo deniega, el código debe continuar funcionando sin bloquear la app, adaptando la experiencia a la ausencia de alertas.                                                               |
+| **Acceso parcial a fotos y videos (“Seleccionar fotos”)**            | Android 14 (API 34 - Upside Down Cake)                         | Aparece el permiso `READ_MEDIA_VISUAL_USER_SELECTED`. La aplicación debe contemplar el escenario de autorización parcial donde la persona usuaria solo otorga acceso a un subconjunto de fotos/videos en lugar de toda la galería. Se debe manejar el estado devuelto, permitir que el usuario actualice la selección si necesita más archivos o preferir APIs del sistema como el Photo Picker nativo (que no requiere permisos de almacenamiento). |
+| **Permiso de red local (`ACCESS_LOCAL_NETWORK`)**                    | Android 15 (API 35 - Vanilla Ice Cream) / Android 16 (Baklava) | Acceder a dispositivos o sockets dentro de la red de área local (LAN/Wi-Fi) ya no está cubierto por el permiso genérico de `INTERNET`. Para escanear, descubrir (por mDNS/SSDP) o comunicarse con otros equipos en la misma red local, el código debe declarar y solicitar este permiso específico en tiempo de ejecución, gestionando el rechazo si la app se ejecuta en redes restringidas o si el usuario deniega el acceso.                      |
+
+### ¿Qué es el `targetSdkVersion`? ¿A qué API apunta Expo SDK 57 y qué exige Google Play desde el 31 de agosto de 2026?
+
+RTA:
+**¿Qué es el `targetSdkVersion`?:**  
+ Es un atributo entero que se define en la configuración de Android y le indica al sistema operativo para qué nivel de API específico fue diseñada y probada la aplicación. No restringe la versión mínima en la que puede correr la app, sino que actúa como un **interruptor de compatibilidad de comportamientos**: le garantiza al sistema que la app está preparada para acatar todas las políticas de seguridad, cambios en el modelo de permisos y restricciones de privacidad introducidas hasta esa versión puntual de Android.
+
+- **¿A qué API apunta Expo SDK 57?:**  
+  Expo SDK 57 apunta de forma predeterminada al nivel de **API 36** (correspondiente a **Android 16**), alineándose con las dependencias y compiladores base de React Native para cumplir con los requerimientos más recientes del ecosistema.
+
+- **¿Qué exige Google Play desde el 31 de agosto de 2026?:**  
+  Siguiendo la política anual de Google Play (que exige que las nuevas aplicaciones y actualizaciones apunten al nivel de API de la versión estable de Android del año previo o dentro del margen de un año desde su lanzamiento oficial), a partir del 31 de agosto de 2026 se exige como requisito obligatorio tener como mínimo **`targetSdkVersion` en API 36 (Android 16)** para poder enviar actualizaciones o publicar nuevas apps en la tienda.
+
+# Parte C · iOS: textos de propósito y acceso parcial
+
+## C1. Claves del Info.plist
+
+Escribí la clave que corresponde a cada recurso. Si no lleva clave, indicalo.
+
+| Recurso                      | Clave en Info.plist                                                                                                          |
+| :--------------------------- | :--------------------------------------------------------------------------------------------------------------------------- |
+| **Cámara**                   | `NSCameraUsageDescription`                                                                                                   |
+| **Micrófono**                | `NSMicrophoneUsageDescription`                                                                                               |
+| **Ubicación en uso**         | `NSLocationWhenInUseUsageDescription`                                                                                        |
+| **Ubicación siempre**        | `NSLocationAlwaysAndWhenInUseUsageDescription`                                                                               |
+| **Fotos (leer)**             | `NSPhotoLibraryUsageDescription`                                                                                             |
+| **Fotos (solo guardar)**     | `NSPhotoLibraryAddUsageDescription`                                                                                          |
+| **Contactos**                | `NSContactsUsageDescription`                                                                                                 |
+| **Face ID**                  | `NSFaceIDUsageDescription`                                                                                                   |
+| **Rastreo entre apps (ATT)** | `NSUserTrackingUsageDescription`                                                                                             |
+| **Notificaciones**           | _No lleva clave en Info.plist_ (se solicita directamente en tiempo de ejecución mediante la API `UNUserNotificationCenter`). |
+
+## C2. Sin texto, no hay permiso
+
+### a) ¿Qué pasa si falta el texto de propósito y la app intenta usar la cámara? ¿Y al subir la build a App Store Connect? Mencioná el código de error.
+
+- **En ejecución:** La app crashea de inmediato (cierre forzoso).
+- **En App Store Connect:** El procesamiento rechaza el binario automáticamente.
+- **Código de error:** `ITMS-90683` (_Missing Purpose String in Info.plist_).
+
+---
+
+### b) ¿Cuántas veces muestra iOS el diálogo de un permiso? Si la persona dice que no, ¿qué le queda a la app?
+
+- **Veces que se muestra:** Una sola vez por código.
+- **Qué le queda a la app:** Mostrar una UI propia explicando la necesidad del permiso y ofrecer un botón que abra los ajustes nativos mediante `Linking.openSettings()`.
+
+---
+
+### c) En el diálogo de iOS, ¿qué parte arma el sistema y cuál escribís vos? En Expo, ¿dónde se configura ese texto?
+
+- **Arma el sistema:** El título ("NombreApp desea acceder..."), los botones de acción ("OK" / "No permitir") y el diseño.
+- **Escribís vos:** El mensaje explicativo del cuerpo (el _purpose string_).
+- **En Expo se configura en:** `app.json`, dentro de `ios.infoPlist` (o en los `plugins` del módulo correspondiente).
+
+---
+
+### d) Una librería usa una API protegida que tu app nunca llama y Apple rechaza la build. ¿Por qué pasa y cómo se resuelve?
+
+- **Por qué pasa:** El escáner estático de Apple busca símbolos de código en todo el binario compilado; si una librería incluye referencias a la API, Apple exige la clave de privacidad aunque tu app no la invoque.
+- **Cómo se resuelve:** Declarar la clave con un texto explicativo en `app.json` (`ios.infoPlist`), o deshabilitar/excluir ese módulo desde la configuración del plugin de la librería.
+
+## C3. Probador de textos de propósito
+
+Evaluá cada texto para `NSLocationWhenInUseUsageDescription` según la pauta 5.1.1 de Apple.
+
+| Texto propuesto                                                               | ¿Aprobado?                                                        | Versión mejorada                                                                        |
+| :---------------------------------------------------------------------------- | :---------------------------------------------------------------- | :-------------------------------------------------------------------------------------- |
+| **“Necesitamos tu ubicación.”**                                               | **No** (demasiado vago, no explica el fin)                        | Usamos tu ubicación para mostrarte los comercios adheridos más cercanos en el mapa.     |
+| **“Para mejorar tu experiencia.”**                                            | **No** (frase genérica rechazada habitualmente por App Store)     | Usamos tu ubicación para sugerirte eventos y actividades disponibles en tu ciudad.      |
+| **“Usamos tu ubicación para mostrarte las farmacias de turno más cercanas.”** | **Sí**                                                            | _(No requiere cambios; explica claramente qué dato usa y el beneficio directo)._        |
+| **“La app no funciona sin ubicación.”**                                       | **No** (coercitivo y no comunica la utilidad real)                | Usamos tu ubicación para calcular la ruta y guiarte paso a paso hasta tu destino.       |
+| **“Ubicación requerida por el sistema.”**                                     | **No** (engañoso; el requerimiento proviene de la app, no del SO) | Usamos tu ubicación para registrar el recorrido exacto de tus salidas de entrenamiento. |
+
+---
+
+## C4. Acceso parcial y granularidad
