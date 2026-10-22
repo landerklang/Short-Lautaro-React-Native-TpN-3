@@ -510,8 +510,15 @@ return enUso.granted;
 - **En iOS:** La solicitud falla directamente o se resuelve denegada sin mostrar diálogo, porque el sistema exige haber otorgado previamente "Al usar la app" para poder ofrecer la opción "Siempre". La función retorna `false` de inmediato.
 - **En Android 11+:** El sistema operativo prohíbe pedir `ACCESS_BACKGROUND_LOCATION` de entrada. Si no se tiene previamente `ACCESS_FINE_LOCATION` o `ACCESS_COARSE_LOCATION`, la llamada se ignora o arroja excepción, no abre la pantalla de ajustes de ubicación y devuelve `denied`.
 
-### b) Reescribí la función correctamente.
-
-### c) Escribí obtenerUbicacion() para que devuelva las coordenadas y un booleano aproximada que contemple Android (accuracy) e iOS (accuracy). Si se deniega, debe devolver null sin romper la app.
-
 ### d) ¿Hace falta segundo plano para “farmacias cercanas”? ¿Qué exige Google Play si lo pedís?
+
+RTA: No, no hace falta segundo plano. Para una función como "farmacias cercanas" solo se requiere el permiso de primer plano (`ACCESS_COARSE_LOCATION` o `ACCESS_FINE_LOCATION`), ya que la consulta de coordenadas se realiza puntualmente mientras el usuario interactúa con la pantalla de la app.
+
+Si se solicita segundo plano (`ACCESS_BACKGROUND_LOCATION`), Google Play exige:
+
+- **Justificación de funcionalidad crítica:** Demostrar que la función principal de la app no puede existir sin el rastreo continuo cuando la aplicación está cerrada o minimizada (por ejemplo: apps de navegación en tiempo real, geocercas de seguridad o flotas logísticas). La búsqueda de comercios cercanos no califica.
+- **Declaración de ubicación en Google Play Console:** Completar un formulario de declaración de permisos detallando el uso del recurso y adjuntando las políticas de privacidad actualizadas.
+- **Video de demostración:** Presentar un video sin editar a los revisores de Google mostrando la experiencia del usuario, la divulgación previa dentro de la app (_prominent disclosure_) y el funcionamiento en segundo plano.
+- **Aprobación manual estricta:** Pasar una revisión humana específica; si determinan que la función puede resolverse en primer plano, rechazan la actualización o eliminan la app de la tienda.
+
+**la actividad B y C esta resueltas en el ejercisio a corregir**
