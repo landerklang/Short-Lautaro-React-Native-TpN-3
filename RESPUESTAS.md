@@ -627,3 +627,62 @@ RTA: No conviene guardarlo porque la única fuente de verdad (single source of t
 ### ¿Por qué pedir cuatro permisos apenas se abre la app “entrena el No permitir automático”? 
 
 RTA: Pedir múltiples permisos de golpe al iniciar la aplicación, sin contexto previo, satura al usuario. Como la persona aún no ha interactuado con ninguna función y no entiende qué valor le aporta otorgar esos accesos, su reacción instintiva y defensiva es presionar rápidamente "No permitir" en cada cuadro de diálogo simplemente para quitarlos del medio y poder ver la app. Esto genera un hábito o rechazo por reflejo, condenando a la aplicación a una alta tasa de denegación permanente que luego es muy difícil de revertir.
+
+## F2. La pantalla previa
+
+### a) ¿Qué tres elementos tiene una buena pantalla previa al diálogo del sistema?
+
+RTA: Una buena pantalla previa (o pre-prompt) al diálogo de permisos del sistema debe incluir estos tres elementos clave:
+Explicación del beneficio: Un texto breve y claro que le indique al usuario exactamente para qué se usará el permiso y qué valor directo le aporta (por ejemplo, "Para avisarte cuando el delivery llegue a tu casa").
+Apoyo visual representativo: Un ícono o ilustración relacionada con la función que se va a habilitar (como una campana para las notificaciones o el pin de un mapa para la ubicación), lo que facilita la comprensión rápida del contexto.
+Opciones claras de acción: Dos botones bien definidos: uno principal para aceptar y avanzar (el cual disparará el diálogo nativo del sistema) y otro secundario (como "Ahora no" o "Más tarde") que permita al usuario rechazar la propuesta temporalmente sin gastar la única oportunidad de solicitud que otorga el sistema operativo.
+
+### b) ¿Por qué el botón debe decir “Continuar” y no “Permitir”? 
+
+RTA: El botón de la pantalla previa debe decir "Continuar" (o un equivalente como "Siguiente") porque esa pantalla introductoria **no tiene la capacidad real de otorgar el permiso**.
+Si el botón dice "Permitir", el usuario asume que la acción ya se completó al presionarlo. Cuando inmediatamente después aparece el diálogo nativo del sistema operativo exigiendo confirmar la misma acción, se genera confusión, fricción y la sensación de que la aplicación está fallando o preguntando lo mismo dos veces. Utilizar "Continuar" establece la expectativa correcta de que el proceso consta de un paso más, preparando al usuario para interactuar con la alerta definitiva del sistema operativo.
+
+### c) ¿Qué dice la pauta 5.1.1(iv) de Apple sobre botones como “Ahora no” o “Cerrar” en esa pantalla? 
+
+RTA: La pauta 5.1.1(iv) de las normativas de revisión de la App Store de Apple establece que si una aplicación utiliza una pantalla personalizada previa a la solicitud de permisos del sistema (pre-prompt), **debe ofrecer obligatoriamente una opción clara y equivalente para cancelar o descartar esa pantalla**, como un botón de "Ahora no", "Cerrar" o un ícono de una "X".El propósito de esta regla es garantizar que el usuario no sea manipulado, engañado ni forzado a conceder un acceso. La aplicación no puede bloquear la navegación exigiendo que la persona presione el botón principal para avanzar; siempre debe existir una vía de escape visible que le permita continuar usando la app sin que se dispare el diálogo nativo de permisos. Si no se incluye esta opción de rechazo, Apple puede rechazar la publicación de la aplicación.
+
+### d) ¿Cómo cambia la pantalla si el permiso ya está bloqueado? 
+
+Si el permiso ya se encuentra bloqueado permanentemente (porque el usuario lo denegó previamente de forma definitiva), la pantalla previa debe adaptar su mensaje y su llamado a la acción, ya que el sistema operativo no volverá a mostrar el diálogo nativo.
+
+- **Cambio en el mensaje:** El texto explicativo debe aclarar que la función no se puede usar porque el permiso está denegado y que es necesario habilitarlo manualmente.
+- **Cambio en el botón principal:** En lugar de decir "Continuar", el botón principal debe decir "Ir a Ajustes" o "Abrir Configuración". Al presionarlo, la aplicación debe redirigir al usuario directamente a la pantalla de configuración del sistema (por ejemplo, utilizando `Linking.openSettings()` en React Native).
+- **Mantener la vía de escape:** Se debe conservar el botón secundario de "Cerrar" o "Ahora no" para que la persona pueda ignorar el aviso y seguir utilizando el resto de la aplicación sin ser forzada a salir hacia los ajustes.
+
+## F3. Mínimo privilegio
+
+Para cada caso elegí la opción más chica que alcanza y justificá.
+
+### a) Ubicación precisa o aproximada para “puntos de reciclaje de tu barrio”
+
+RTA: La opción adecuada es la ubicación aproximada. Para mostrar puntos de reciclaje dentro de un barrio no es necesario conocer la dirección exacta o las coordenadas GPS precisas del usuario. El nivel de detalle que ofrece la ubicación aproximada es suficiente para identificar la zona o localidad general y listar los contenedores cercanos, garantizando la funcionalidad de la aplicación mientras se respeta la privacidad y se minimiza la recopilación de datos sensibles.
+
+### b) Ubicación “en uso” o “siempre” para “registrar una carrera con el celular en el bolsillo”. 
+
+RTA: La opción adecuada es la ubicación **"en uso"** (implementada junto con un servicio en primer plano o _foreground service_).Para registrar una carrera, el usuario inicia la acción de forma explícita. No es necesario que la aplicación tenga acceso a la ubicación "siempre" (las 24 horas del día). Con el permiso "en uso" y una notificación persistente activa, el sistema operativo permite que la app siga leyendo el GPS aunque la pantalla esté apagada y el celular guardado en el bolsillo, garantizando la funcionalidad sin vulnerar la privacidad del usuario el resto del día.
+
+### c) Selector del sistema o permiso de galería para “subir la foto del DNI”.
+
+RTA: La opción adecuada es el selector del sistema (Photo Picker). Para subir la foto del DNI, la aplicación solo necesita procesar ese archivo específico de forma puntual y no requiere un acceso continuo o total a la biblioteca multimedia. Al utilizar el selector nativo, el sistema operativo se encarga de la interfaz y le entrega a la app acceso exclusivo únicamente a la imagen que el usuario eligió, cumpliendo perfectamente con el principio de mínimo privilegio sin tener que solicitar permisos adicionales.
+
+### d) expo-camera con o sin micrófono para “escanear el QR del aula”.
+
+RTA: La opción adecuada es utilizar la cámara sin micrófono. Para escanear un código QR de un aula únicamente se necesita procesar la imagen visual. Solicitar el permiso de grabación de audio es innecesario para esta tarea específica, rompe el principio de mínimo privilegio y seguramente generará desconfianza en el usuario, quien probablemente denegaría el acceso al no comprender por qué un escáner de códigos necesita escuchar a través del dispositivo.
+
+## F4. Tiendas
+
+### a) Nombrá dos requisitos de Google Play y dos de App Store relacionados con permisos y privacidad.
+
+RTA:
+**Requisitos de Google Play:**
+
+- **Declaración destacada:** Mostrar un aviso claro e ineludible en la app antes de solicitar permisos sensibles (como ubicación en segundo plano).
+- **Seguridad de Datos:** Obligación de declarar públicamente en la consola qué datos se recopilan, con qué fines y si se comparten con terceros.
+  **Requisitos de App Store:**
+- **Cadenas de justificación:** Incluir descripciones precisas (`Info.plist`) explicando exactamente para qué se usará cada permiso; se rechazan textos genéricos.
+- **App Tracking Transparency (ATT):** Solicitar permiso explícito mediante un marco nativo antes de rastrear la actividad del usuario a través de apps o sitios de terceros.
