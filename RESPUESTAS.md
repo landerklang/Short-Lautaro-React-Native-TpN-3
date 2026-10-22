@@ -462,3 +462,33 @@ RTA: Se ejecuta el comando para restablecer todos los permisos de la aplicación
 ```bash
 adb shell pm reset-permissions <package_name>
 ```
+
+## E1. Encontrá los errores (cámara)
+
+### Esta pantalla funciona la primera vez, pero tiene varios problemas. Encontrá al menos tres y escribí la versión corregida con los cuatro estados (cargando → concedido → preguntable → bloqueado).
+
+```
+src/app/escanear.tsx
+import { CameraView, useCameraPermissions } from 'expo-camera';
+import { Button } from 'react-native';
+export default function Escanear() {
+ const [permiso, pedirPermiso] = useCameraPermissions();
+ if (permiso.status === 'granted') {
+ return <CameraView style={{ flex: 1 }} facing="back" />;
+ }
+ return (
+ <Explicacion texto="Usamos la cámara para leer el QR del aula.">
+ <Button title="Permitir" onPress={pedirPermiso} />
+ </Explicacion>
+ );
+}
+E2
+```
+
+### Errores identificados
+
+-**Crash por lectura de `null` en el primer render:**  
+ `permiso` inicia en `null` mientras se resuelve la consulta asíncrona nativa. Acceder a `permiso.status` provoca un error de ejecución inmediato (`Cannot read properties of null (reading 'status')`). Falta manejar el estado de carga inicial.
+**No maneja el estado bloqueado (`canAskAgain: false`):**  
+ Si el usuario deniega el permiso permanentemente (doble rechazo en Android o rechazo único en iOS), el botón `pedirPermiso` no hace nada. Se debe detectar `!permiso.canAskAgain` y redirigir con `Linking.openSettings()`. **Elementos incompletos / JSX roto:**  
+ Falta envolver los retornos con contenedores de maquetación (`View`, `Text`, estilos), `CameraView` requiere `style={{ flex: 1 }}` para ser visible en pantalla, y no se importa ni se gestiona la redirección nativa.
