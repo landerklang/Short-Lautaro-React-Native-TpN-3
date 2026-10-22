@@ -430,3 +430,35 @@ Para cada `PermissionResponse`, indicá qué debería hacer la app.
 ### ¿Qué pasa en iOS si la persona elige “Permitir una vez” y después cierra y reabre la app?
 
 Al cerrar la app finaliza la sesión autorizada. Al reabrirla, el permiso vuelve automáticamente al estado inicial **`undetermined`** con **`canAskAgain: true`**, por lo que la app puede volver a presentar el diálogo nativo cuando lo solicite.
+
+## D5. Configurar app.json
+
+Enlace:[expo.plugins](./app.json)
+
+¿Por qué expo-camera agrega RECORD_AUDIO en Android aunque la app no grabe sonido?
+Porque expo-camera es una librería que soporta tanto fotos como videos con audio. A nivel nativo en Android, el archivo AndroidManifest.xml empaquetado dentro de la librería ya trae escrito <uses-permission android:name="android.permission.RECORD_AUDIO" />.
+
+## D6. Expo Go no es tu app
+
+### a) ¿Por qué tus textos de propósito no aparecen cuando probás en Expo Go?
+
+RTA: Porque Expo Go es un binario nativo ya precompilado por el equipo de Expo con su propio archivo `Info.plist`. Las configuraciones que escribís en `app.json` (incluidos los textos de propósito como `NSCameraUsageDescription`) solo se inyectan al compilar la app; Expo Go no puede modificar su propio binario en tiempo de ejecución para mostrar tus textos.
+
+### b) ¿Qué se puede probar en Expo Go y qué necesita una development build? Pensá en push en Android y en ubicación en segundo plano.
+
+RTA: Se puede probar en Expo Go: Flujos básicos de permisos estándar en primer plano (cámara, galería, ubicación en uso), componentes de interfaz y lógica de JavaScript general y lo que necesita Development Build:
+**Push notifications en Android:** Desde Android 13 requieren el permiso de ejecución `POST_NOTIFICATIONS` y servicios nativos de mensajería (FCM/Expo Notifications) configurados a nivel de proyecto.
+**Ubicación en segundo plano:** Requiere registrar tareas en segundo plano (`expo-task-manager`), servicios en segundo plano nativos y el permiso `ACCESS_BACKGROUND_LOCATION` compilado en el binario final.
+-Cualquier modificación al `AndroidManifest.xml` o `Info.plist` (como `blockedPermissions` o plugins nativos personalizados).
+
+### c) Escribí los comandos para ver los archivos nativos generados y para compilar una development build en Android.
+
+RTA: El codigo para generar y ver archivos nativos es : -_npx expo prebuild_ y para compilar y correr la build _npx expo run:android_
+
+### d) ¿Cómo volvés un permiso a “sin decidir” sin reinstalar, en Android (adb) y en el simulador de iOS (xcrun simctl)?
+
+RTA: Se ejecuta el comando para restablecer todos los permisos de la aplicación a su estado de fábrica:
+
+```bash
+adb shell pm reset-permissions <package_name>
+```
