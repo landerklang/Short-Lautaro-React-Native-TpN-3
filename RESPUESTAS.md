@@ -686,3 +686,73 @@ RTA:
   **Requisitos de App Store:**
 - **Cadenas de justificación:** Incluir descripciones precisas (`Info.plist`) explicando exactamente para qué se usará cada permiso; se rechazan textos genéricos.
 - **App Tracking Transparency (ATT):** Solicitar permiso explícito mediante un marco nativo antes de rastrear la actividad del usuario a través de apps o sitios de terceros.
+
+### b) ¿Qué es el manifiesto de privacidad (PrivacyInfo.xcprivacy) y dónde se configura en Expo?
+
+RTA:Es un archivo exigido por Apple para las aplicaciones de iOS que declara de manera estructurada qué datos recopila tu app (incluyendo los SDKs de terceros) y justifica por qué utiliza ciertas APIs controladas por el sistema (conocidas como _Required Reason APIs_, como el acceso a UserDefaults o tiempos de inicio). Sirve para transparentar el uso de datos y generar las etiquetas de privacidad en la App Store.La configuracion en proyectos administrados por Expo, no creas ni editas este archivo manualmente. Se configura directamente dentro del archivo **`app.json`** (o `app.config.js`) utilizando la propiedad **`expo.ios.privacyManifests`**. Al compilar el proyecto (con EAS Build o prebuild), Expo lee esta configuración y genera el archivo `.xcprivacy` nativo automáticamente.
+
+### c) ¿Qué suma Android 17 y qué va a exigir Google Play desde el 27/01/2027 a las apps que hoy piden READ_CONTACTS?
+
+RTA: android 17 consolida la implementación del **selector nativo de contactos** (Contact Picker) para aislar la libreta de direcciones, permitiendo a los usuarios elegir números o correos específicos sin otorgar a la aplicación acceso a la agenda completa. A partir del 27 de enero de 2027, Google Play exigirá que las aplicaciones que actualmente solicitan el permiso amplio `READ_CONTACTS` migren obligatoriamente a este selector nativo si su caso de uso es puntual (por ejemplo, elegir un amigo para enviarle dinero, invitar a un contacto o compartir un enlace). El permiso `READ_CONTACTS` quedará estrictamente restringido a casos de uso centrales; Google Play solo lo aprobará para aquellas aplicaciones cuya funcionalidad crítica dependa de la sincronización y gestión de la agenda completa (como clientes de correo electrónico, aplicaciones de mensajería principal, dialers o herramientas de copia de seguridad).
+
+## F5. Errores comunes
+
+Para cada situación explicá la causa y la solución:
+
+### a) La consola de Xcode muestra: “This app has crashed because it attempted to access privacy-sensitive data without a usage description.”
+
+Causa: iOS cierra la app inmediatamente si intentás acceder a un dato sensible (cámara, contactos, etc.) sin haber declarado la justificación obligatoria (_Usage Description_) en el archivo nativo `Info.plist`.
+
+**Solución en Expo:**
+Como en el flujo administrado de Expo no editás el `Info.plist` a mano, debés agregarlo en tu **`app.json`** mediante una de estas dos opciones:
+
+1. **Config Plugins (Recomendado):**
+
+```json
+"plugins": [
+  [
+    "expo-camera",
+    { "cameraPermission": "Necesario para escanear el QR del aula." }
+  ]
+]
+
+```
+
+2. **Directo en `infoPlist**` (si el paquete no tiene plugin):
+
+```json
+"ios": {
+  "infoPlist": {
+    "NSContactsUsageDescription": "Necesario para invitar amigos."
+  }
+}
+
+```
+
+**Importante:** Al ser un cambio en la configuración nativa, **debés volver a compilar** la app (con EAS Build o `npx expo prebuild`). No alcanza con solo recargar el servidor de desarrollo.
+
+### b) “En Expo Go anda, en la build no”: en la development build la cámara se deniega sin mostrar ningún diálogo.
+
+RTA:
+Causa: Expo Go es una aplicación precompilada que ya incluye internamente todos los permisos nativos y sus justificaciones. En cambio, cuando generás tu propia _development build_ (o build de producción), partís de una app limpia. Si no declarás explícitamente el permiso en tu configuración, los binarios nativos no lo incluyen y el sistema operativo deniega el acceso automáticamente sin siquiera mostrar el diálogo.
+
+**Solución:**
+
+1. Verificá que el paquete tenga su plugin y texto de justificación configurados en la sección `"plugins"` de tu **`app.json`** (por ejemplo, `expo-camera`).
+2. **Generá una nueva compilación de la development build** (utilizando EAS Build o compilando en local). Como se trata de dependencias y permisos nativos, no alcanza con recargar el código de JavaScript (Fast Refresh); es obligatorio volver a compilar la app para que se generen los manifiestos correctos de Android e iOS.
+
+### c) Después de habilitar la ubicación en Ajustes, la app sigue diciendo “bloqueado”.
+
+RTA: Esto ocurre porque la aplicación guardó el estado del permiso al iniciarse y no detectó el cambio realizado en los Ajustes mientras estaba en segundo plano. React Native no sincroniza automáticamente sus variables de estado interno con los cambios externos del sistema operativo.
+
+Para solucionarlo, se debe utilizar el módulo AppState de React Native para escuchar cuándo la aplicación vuelve al primer plano (estado active) tras salir de la configuración. En ese momento exacto, se debe volver a ejecutar la función que le consulta el permiso al sistema operativo para refrescar el estado y actualizar la interfaz con el valor real.
+
+### d) La pantalla queda en “Pidiendo permiso…” para siempre porque el código llama a request… () cada vez que se renderiza.
+
+RTA: Esto ocurre porque llamar a la función que solicita el permiso directamente en el cuerpo del componente genera un ciclo infinito de renderizados. Al pedir el permiso, se actualiza el estado interno del componente o se interrumpe el flujo, lo que provoca que React vuelva a renderizar la pantalla y ejecute la petición nuevamente antes de que el usuario pueda responder o el sistema termine de procesar. Para solucionarlo, la solicitud del permiso debe colocarse dentro de un useEffect con un arreglo de dependencias vacío para que se ejecute una sola vez al montar la pantalla, o bien enlazarse directamente a la función de un botón que el usuario deba presionar.
+
+### e) Una app de turnos no permite entrar a ninguna pantalla si se deniegan las notificaciones.
+
+RTA: Causa: Condicionar el acceso a la aplicación por un permiso no esencial es un antipatrón de diseño y viola las políticas de privacidad de las tiendas (Apple y Google), ya que se impide utilizar la funcionalidad principal de forma arbitraria.
+
+Solución: Desacoplar el permiso de la navegación principal. Se debe permitir al usuario ingresar, explorar y reservar turnos con total normalidad aunque rechace las alertas. Como alternativa, la app debe enviar las confirmaciones por correo electrónico o SMS, ofreciendo la opción de activar las notificaciones push más adelante desde una sección interna de configuración.
