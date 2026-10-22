@@ -522,3 +522,55 @@ Si se solicita segundo plano (`ACCESS_BACKGROUND_LOCATION`), Google Play exige:
 - **Aprobación manual estricta:** Pasar una revisión humana específica; si determinan que la función puede resolverse en primer plano, rechazan la actualización o eliminan la app de la tienda.
 
 **la actividad B y C esta resueltas en el ejercisio a corregir**
+
+## E3. Notificaciones mudas
+
+### a) ¿Cuál es la causa más probable? ¿Qué hay que hacer antes de pedir el permiso?
+
+RTA:La causa más probable es la falta de declarar o crear previamente el **Canal de Notificaciones (Notification Channel)** obligatorio en Android (requerido desde Android 8.0, API 26) o falta declarar el permiso de ejecución `POST_NOTIFICATIONS` en el `AndroidManifest.xml` (introducido en Android 13/14). Además, si se prueba en Expo Go o sin compilar la configuración nativa, el diálogo del sistema no se dispara.
+
+1. **Crear el canal de notificación por código:** Llamar a `Notifications.setNotificationChannelAsync('default', { ... })` antes de solicitar el permiso, estableciendo una importancia mínima de `AndroidImportance.MAX` o `HIGH`. Sin un canal activo configurado, el sistema operativo ignora las alertas o las suprime como silenciosas.
+2. **Tener el plugin o permiso en `app.json`:** Asegurarse de tener configurado el plugin de `expo-notifications` para que inyecte `android.permission.POST_NOTIFICATIONS` en el manifiesto final tras compilar con una _Development Build_.
+
+### b) ¿Qué pasa con este permiso en Android 12 o anterior?
+
+**RTA:** En Android 12 o versiones anteriores, el permiso de notificaciones **no era un permiso de tiempo de ejecución (runtime permission)**. El sistema lo otorgaba automáticamente en el momento de la instalación de la aplicación, sin necesidad ni posibilidad de mostrar un diálogo emergente de confirmación al usuario. La llamada a `requestPermissionsAsync()` en esos dispositivos simplemente devuelve el estado concedido de forma automática, a menos que el usuario haya ido manualmente a los ajustes del sistema a silenciar la app o sus canales.
+
+### c) ¿Qué opción de iOS permite recibir notificaciones sin diálogo? ¿Cómo detectás en código ese estado?
+
+**RTA:**
+
+- **Opción de iOS:** La autorización provisional (**Provisional Authorization** / `allowProvisional: true`). Permite enviar notificaciones silenciosas directamente al Centro de Notificaciones sin mostrar el diálogo nativo de permisos al usuario; el usuario decide si mantenerlas o apagarlas directamente desde el aviso que recibe.
+- **Cómo se detecta en código:** Se solicita pasando la opción `{ ios: { allowProvisional: true } }` y se evalúa el estado retornado verificando si `ios.status` es igual al valor `PROVISIONAL` (o valor numérico `3` según la API nativa de `expo-notifications`):
+
+```typescript
+import * as Notifications from "expo-notifications";
+
+const respuesta = await Notifications.requestPermissionsAsync({
+  ios: {
+    allowProvisional: true,
+  },
+});
+
+// Se detecta evaluando el estado provisional en la respuesta de iOS
+const esProvisional =
+  respuesta.ios?.status === Notifications.IosAuthorizationStatus.PROVISIONAL;
+```
+
+### d) ¿En qué momento conviene pedir este permiso? Dá un ejemplo de buen y de mal momento.
+
+**RTA:** Conviene pedir el permiso **en contexto**, es decir, justo en el momento en que el usuario realiza una acción dentro de la app donde la notificación aporta un valor claro e inmediato. Debe evitarse pedirlo de forma ciega apenas arranca la aplicación.
+
+- **Mal momento:** Solicitar el permiso inmediatamente al abrir la app por primera vez (en el splash screen o en la pantalla de bienvenida/onboarding) sin que el usuario haya interactuado con ninguna función. El usuario no sabe para qué se usarán las alertas y la tasa de rechazo permanente es muy alta.
+- **Buen momento:** Solicitarlo justo después de que el usuario realiza una compra, programa un recordatorio o activa una alerta de seguimiento (por ejemplo: tras presionar el botón "Comprar", mostrar una pantalla previa explicando _"¿Querés recibir avisos del estado de tu envío?"_ y disparar el diálogo nativo únicamente si confirma).
+
+## E4. Fotos sin pedir permiso
+
+**RTA:**
+
+| Necesidad                              | Herramienta                                                                | Permiso                                                                                                                                                                                                              |
+| -------------------------------------- | -------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Elegir una foto de perfil**          | Photo Picker del sistema (`expo-image-picker` con selector nativo)         | **Ninguno**. El selector del sistema corre en un proceso independiente fuera de la app; el usuario otorga acceso implícito solo al archivo que toca y selecciona.                                                    |
+| **Sacar una foto en el momento**       | `expo-camera` (o Intent de cámara `expo-image-picker`)                     | **Requiere permiso de cámara** (`CAMERA` / `NSCameraUsageDescription`) si se embebe la vista en la app; o **ninguno** si se delega mediante intent nativo a la app de cámara del sistema.                            |
+| **Editor que muestra toda la galería** | `expo-media-library`                                                       | **Requiere permiso de galería completa** (`READ_MEDIA_IMAGES` / `READ_EXTERNAL_STORAGE` / `NSPhotoLibraryUsageDescription`), ya que la app necesita indexar, listar y leer todos los archivos en su propia interfaz. |
+| **Adjuntar la foto de un comprobante** | Photo Picker del sistema o selector de documentos (`expo-document-picker`) | **Ninguno**. Al usar el selector nativo del sistema operativo, el usuario elige el comprobante puntual y la app solo recibe el URI de ese archivo específico sin acceso al resto del almacenamiento.                 |
