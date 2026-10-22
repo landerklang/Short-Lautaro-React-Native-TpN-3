@@ -1,0 +1,26 @@
+{
+  "expo": {
+    "android": {
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.SYSTEM_ALERT_WINDOW"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Usamos la cámara para escanear los códigos QR de los puntos de reciclaje.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-location",
+        {
+          "locationForegroundPermission": "Usamos tu ubicación para mostrarte los puntos de reciclaje cercanos en el mapa."
+        }
+      ]
+    ]
+  }
+}
