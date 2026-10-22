@@ -574,3 +574,56 @@ const esProvisional =
 | **Sacar una foto en el momento**       | `expo-camera` (o Intent de cámara `expo-image-picker`)                     | **Requiere permiso de cámara** (`CAMERA` / `NSCameraUsageDescription`) si se embebe la vista en la app; o **ninguno** si se delega mediante intent nativo a la app de cámara del sistema.                            |
 | **Editor que muestra toda la galería** | `expo-media-library`                                                       | **Requiere permiso de galería completa** (`READ_MEDIA_IMAGES` / `READ_EXTERNAL_STORAGE` / `NSPhotoLibraryUsageDescription`), ya que la app necesita indexar, listar y leer todos los archivos en su propia interfaz. |
 | **Adjuntar la foto de un comprobante** | Photo Picker del sistema o selector de documentos (`expo-document-picker`) | **Ninguno**. Al usar el selector nativo del sistema operativo, el usuario elige el comprobante puntual y la app solo recibe el URI de ese archivo específico sin acceso al resto del almacenamiento.                 |
+
+### ¿Por qué Google Play restringe READ_MEDIA_IMAGES y READ_MEDIA_VIDEO? ¿Desde cuándo? ¿Qué es “el mejor permiso”?
+
+RTA: Google Play restringe estos permisos amplios para aplicar el principio de privilegio mínimo y proteger la privacidad del usuario. Al limitarlos exclusivamente a aplicaciones que los necesitan para su función principal (como galerías o editores), se evita el acceso injustificado a toda la biblioteca multimedia y se obliga a las demás apps a utilizar el selector de fotos del sistema.
+
+Desde cuándo: Estos permisos se introdujeron en Android 13 (API 33) en 2022. Google Play comenzó a exigir el cumplimiento estricto de esta política durante 2024, requiriendo justificar el acceso amplio o migrar al selector nativo para publicar actualizaciones.
+
+El mejor permiso: Es un principio de seguridad de Android que establece que la mejor forma de proteger la privacidad es no solicitar permisos en absoluto. Implica delegar la tarea a componentes del sistema (como el Photo Picker), donde el sistema operativo gestiona la selección y la aplicación solo recibe el archivo elegido de forma aislada, sin declarar permisos en su código.
+
+## E5. Volver de Ajustes
+
+Completá los espacios del hook y respondé.
+src/hooks/useRevisarAlVolver.ts
+import { useEffect, useRef } from 'react';
+import { AppState } from 'react-native';
+export function useRevisarAlVolver(revisar: () => void) {
+const anterior = useRef(AppState.currentState);
+useEffect(() => {
+const sub = AppState.addEventListener('change', (nuevo) => {
+const estabaAfuera = **\*\*\*\***\_\_\_\_**\*\*\*\***;
+if (estabaAfuera && **\*\*\*\***\_\_\_\_**\*\*\*\***) revisar();
+anterior.current = nuevo;
+});
+return () => **\*\*\*\***\_\_\_\_**\*\*\*\***;
+}, [revisar]);
+}
+
+## a) ¿Por qué los hooks de Expo no se enteran solos de que el permiso cambió en Ajustes?
+
+RTA: Los hooks de Expo evalúan el estado del permiso únicamente al montarse o cuando se ejecuta su función de verificación de forma manual. Cuando el usuario sale de la aplicación hacia los Ajustes del sistema, cambia el permiso y regresa, la app pasa a segundo plano y luego vuelve al primer plano, pero el sistema operativo no emite un evento automático que los hooks escuchen por defecto para actualizarse en tiempo real. Por este motivo, se requiere escuchar los cambios del AppState para forzar una nueva lectura del permiso justo en el momento en que la aplicación vuelve a estar activa.
+
+## b) ¿Qué función del hook de cámara le pasarías a useRevisarAlVolver?
+
+RTA: Le pasaría la función `getPermission` (o la función encargada de consultar el estado) que retorna el hook de permisos de la cámara (por ejemplo, `const [status, requestPermission, getPermission] = useCameraPermissions();`). Esta función obliga a la aplicación a leer nuevamente la configuración en el sistema operativo y actualizar el estado en React, reflejando de inmediato si el usuario otorgó o revocó el permiso desde los Ajustes.
+
+## c) ¿Por qué no conviene guardar el estado del permiso en un store global “para siempre”?
+
+RTA: No conviene guardarlo porque la única fuente de verdad (single source of truth) para los permisos es el propio sistema operativo.El usuario puede salir de la aplicación, ir a los Ajustes del dispositivo y revocar o conceder el permiso en cualquier momento. Si la aplicación confía ciegamente en un valor guardado previamente en un store global, podría terminar en estados inconsistentes: creer que tiene permiso e intentar abrir la cámara (lo que provocaría el cierre inesperado o crasheo de la app) o creer que no lo tiene y bloquear la función cuando el usuario ya otorgó el acceso. Por esto, siempre se debe consultar el estado real al sistema operativo mediante las funciones asíncronas correspondientes.
+
+### F1. Pedir en contexto
+
+| App y permiso                          | ¿Cuándo pedirlo?                                                                                                                     | Alternativa si lo deniegan                                                                                                                   |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Delivery · ubicación**               | Al momento en que el usuario presiona un botón como "Usar mi ubicación actual" o intenta fijar el punto de entrega en el mapa.       | Permitir al usuario ingresar la dirección de envío de forma manual mediante un cuadro de texto o buscador.                                   |
+| **Billetera virtual · cámara**         | Justo cuando el usuario presiona el botón de "Escanear QR" para realizar un pago o al iniciar el flujo de verificación de identidad. | Habilitar un campo de texto para ingresar manualmente el código numérico del pago o cargar una foto del DNI desde los archivos.              |
+| **Red social · contactos**             | Cuando el usuario presiona explícitamente una opción como "Buscar amigos en mis contactos" o "Sincronizar agenda".                   | Permitir la búsqueda manual de amigos mediante nombre de usuario, correo electrónico o enviar un enlace de invitación.                       |
+| **Mensajería · micrófono**             | En el instante en que el usuario mantiene presionado el icono del micrófono para grabar su primer mensaje de voz.                    | La aplicación debe permitir seguir enviando mensajes de texto, imágenes o archivos adjuntos sin restricciones.                               |
+| **Turnos médicos · notificaciones**    | Inmediatamente después de que el usuario reserva un turno con éxito (mostrando un mensaje previo: "¿Querés un recordatorio?").       | Enviar los detalles de la confirmación y los recordatorios del turno por correo electrónico o SMS.                                           |
+| **Editor de fotos · galería completa** | Al presionar el botón de "Importar imagen" o "Crear nuevo proyecto" si la app requiere gestionar álbumes completos.                  | Utilizar el selector de fotos nativo del sistema (Photo Picker) para que el usuario seleccione únicamente las imágenes específicas a editar. |
+
+### ¿Por qué pedir cuatro permisos apenas se abre la app “entrena el No permitir automático”? 
+
+RTA: Pedir múltiples permisos de golpe al iniciar la aplicación, sin contexto previo, satura al usuario. Como la persona aún no ha interactuado con ninguna función y no entiende qué valor le aporta otorgar esos accesos, su reacción instintiva y defensiva es presionar rápidamente "No permitir" en cada cuadro de diálogo simplemente para quitarlos del medio y poder ver la app. Esto genera un hábito o rechazo por reflejo, condenando a la aplicación a una alta tasa de denegación permanente que luego es muy difícil de revertir.
