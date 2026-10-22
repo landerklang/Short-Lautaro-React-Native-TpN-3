@@ -492,3 +492,26 @@ E2
 **No maneja el estado bloqueado (`canAskAgain: false`):**  
  Si el usuario deniega el permiso permanentemente (doble rechazo en Android o rechazo único en iOS), el botón `pedirPermiso` no hace nada. Se debe detectar `!permiso.canAskAgain` y redirigir con `Linking.openSettings()`. **Elementos incompletos / JSX roto:**  
  Falta envolver los retornos con contenedores de maquetación (`View`, `Text`, estilos), `CameraView` requiere `style={{ flex: 1 }}` para ser visible en pantalla, y no se importa ni se gestiona la redirección nativa.
+
+## E2. El orden importa (ubicación)
+
+src/lib/ubicacion.ts
+export async function activarSeguimiento() {
+const siempre = await Location.requestBackgroundPermissionsAsync();
+if (!siempre.granted) return false;
+const enUso = await Location.requestForegroundPermissionsAsync();
+return enUso.granted;
+}
+
+### a) ¿Qué está mal? ¿Qué ocurre en iOS y qué ocurre en Android 11+?
+
+**RTA:** Está mal el orden de solicitud: pide segundo plano antes de tener el de primer plano. En sistemas operativos móviles modernos es obligatorio tener concedido primero el permiso en primer plano para poder escalar al de segundo plano.
+
+- **En iOS:** La solicitud falla directamente o se resuelve denegada sin mostrar diálogo, porque el sistema exige haber otorgado previamente "Al usar la app" para poder ofrecer la opción "Siempre". La función retorna `false` de inmediato.
+- **En Android 11+:** El sistema operativo prohíbe pedir `ACCESS_BACKGROUND_LOCATION` de entrada. Si no se tiene previamente `ACCESS_FINE_LOCATION` o `ACCESS_COARSE_LOCATION`, la llamada se ignora o arroja excepción, no abre la pantalla de ajustes de ubicación y devuelve `denied`.
+
+### b) Reescribí la función correctamente.
+
+### c) Escribí obtenerUbicacion() para que devuelva las coordenadas y un booleano aproximada que contemple Android (accuracy) e iOS (accuracy). Si se deniega, debe devolver null sin romper la app.
+
+### d) ¿Hace falta segundo plano para “farmacias cercanas”? ¿Qué exige Google Play si lo pedís?
