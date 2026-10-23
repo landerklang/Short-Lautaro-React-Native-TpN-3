@@ -1,14 +1,19 @@
 // app/ajustes-app.tsx
 import { useEffect, useState } from "react";
 import { View, Text, Switch, StyleSheet, Platform, Alert } from "react-native";
-import * as Notifications from "expo-notifications";
+import Constants from "expo-constants";
 import { usePermiso } from "../hooks/usepermiso";
+
+// PARCHE: Evitar crash en Expo Go Android
+const Notifications =
+  Constants.appOwnership === "expo" && Platform.OS === "android"
+    ? null
+    : require("expo-notifications");
 
 export default function AjustesApp() {
   const { estado, pedir, abrirAjustes } = usePermiso("notificaciones");
   const [activado, setActivado] = useState(false);
 
-  // Sincronizamos el switch con el estado real del permiso
   useEffect(() => {
     if (estado === "concedido") {
       setActivado(true);
@@ -23,8 +28,8 @@ export default function AjustesApp() {
       return;
     }
 
-    // 1. En Android, creamos el canal ANTES de pedir el permiso (Requisito G2.5)
-    if (Platform.OS === "android") {
+    // 1. En Android, crear el canal ANTES de pedir (si el módulo existe)
+    if (Platform.OS === "android" && Notifications) {
       await Notifications.setNotificationChannelAsync("reportes", {
         name: "Reportes Resueltos",
         importance: Notifications.AndroidImportance.MAX,
@@ -71,12 +76,12 @@ export default function AjustesApp() {
         mantenimiento marque tu reporte como "Resuelto".
       </Text>
 
-      {Platform.OS === "android" && (
+      {Platform.OS === "android" && !Notifications && (
         <View style={styles.alerta}>
           <Text style={styles.alertaTexto}>
-            (Nota: En Expo Go las notificaciones pueden no mostrarse por
-            limitaciones de la herramienta, pero funcionarán en la app
-            compilada).
+            (Nota: En Expo Go las notificaciones no están disponibles por
+            limitaciones de la herramienta. En la app compilada funcionarán
+            correctamente).
           </Text>
         </View>
       )}

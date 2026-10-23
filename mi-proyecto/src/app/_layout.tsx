@@ -12,7 +12,7 @@ export default function RootLayout() {
           title: "Permiso necesario",
         }}
       />
-      {/* <Stack.Screen name="ajustes-app" options={{ title: 'Ajustes' }} /> */}
+      <Stack.Screen name="ajustes-app" options={{ title: "Ajustes" }} />
     </Stack>
   );
 }
