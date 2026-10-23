@@ -1,10 +1,15 @@
-// src/hooks/usePermiso.ts
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AppState, Linking, Platform } from "react-native";
 import { Camera } from "expo-camera";
 import * as Location from "expo-location";
-import * as Notifications from "expo-notifications";
+import Constants from "expo-constants";
 import { Recurso, RECURSO_SIN_PERMISO } from "../lib/permisos";
+
+// PARCHE: Evitar crash en Expo Go Android
+const Notifications =
+  Constants.appOwnership === "expo" && Platform.OS === "android"
+    ? null
+    : require("expo-notifications");
 
 export type EstadoPermiso =
   | "cargando"
@@ -14,20 +19,18 @@ export type EstadoPermiso =
 
 export interface UsePermisoResult {
   estado: EstadoPermiso;
-  parcial: boolean; // true si es "limited" (iOS cámara) o "approximate" (ubicación)
+  parcial: boolean;
   pedir: () => Promise<void>;
   abrirAjustes: () => void;
 }
 
-// Tipo interno para normalizar lo que devuelve cada API
 interface RawPermiso {
   granted: boolean;
   canAskAgain: boolean;
   status: string;
-  // Campos específicos
-  accuracy?: string; // 'approximate' | 'precise' | etc.
+  accuracy?: string;
   ios?: { accessPrivileges?: string };
-  accessPrivileges?: string; // por si viene en la raíz (versiones viejas)
+  accessPrivileges?: string;
 }
 
 async function consultarPermiso(recurso: Recurso): Promise<RawPermiso | null> {
@@ -56,6 +59,9 @@ async function consultarPermiso(recurso: Recurso): Promise<RawPermiso | null> {
       };
     }
     case "notificaciones": {
+      if (!Notifications) {
+        return { granted: false, canAskAgain: false, status: "denied" };
+      }
       const p = await Notifications.getPermissionsAsync();
       return {
         granted: p.granted,
@@ -92,6 +98,9 @@ async function solicitarPermiso(recurso: Recurso): Promise<RawPermiso | null> {
       };
     }
     case "notificaciones": {
+      if (!Notifications) {
+        return { granted: false, canAskAgain: false, status: "denied" };
+      }
       const p = await Notifications.requestPermissionsAsync();
       return {
         granted: p.granted,
@@ -119,9 +128,6 @@ function derivarEstado(raw: RawPermiso | null): {
     estado = "bloqueado";
   }
 
-  // Parcial:
-  // - Cámara iOS: accessPrivileges === 'limited'
-  // - Ubicación: accuracy === 'approximate' (o cualquier valor que no sea 'precise'/'full')
   let parcial = false;
   if (
     raw.accessPrivileges === "limited" ||
@@ -148,13 +154,11 @@ export function usePermiso(recurso: Recurso): UsePermisoResult {
     setParcial(nuevoParcial);
   }, [recurso]);
 
-  // Carga inicial y cuando cambia el recurso
   useEffect(() => {
     setEstado("cargando");
     refrescar();
   }, [refrescar]);
 
-  // Refrescar al volver de Ajustes (AppState)
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (nextAppState) => {
       if (
