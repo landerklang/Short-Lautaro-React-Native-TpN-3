@@ -2,14 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AppState, Linking, Platform } from "react-native";
 import { Camera } from "expo-camera";
 import * as Location from "expo-location";
-import Constants from "expo-constants";
 import { Recurso, RECURSO_SIN_PERMISO } from "../lib/permisos";
-
-// PARCHE: Evitar crash en Expo Go Android
-const Notifications =
-  Constants.appOwnership === "expo" && Platform.OS === "android"
-    ? null
-    : require("expo-notifications");
 
 export type EstadoPermiso =
   | "cargando"
@@ -59,15 +52,8 @@ async function consultarPermiso(recurso: Recurso): Promise<RawPermiso | null> {
       };
     }
     case "notificaciones": {
-      if (!Notifications) {
-        return { granted: false, canAskAgain: false, status: "denied" };
-      }
-      const p = await Notifications.getPermissionsAsync();
-      return {
-        granted: p.granted,
-        canAskAgain: p.canAskAgain,
-        status: p.status,
-      };
+      // TEMPORAL: Simulamos que está bloqueado para evitar el crash
+      return { granted: false, canAskAgain: false, status: "denied" };
     }
     default:
       return null;
@@ -98,15 +84,8 @@ async function solicitarPermiso(recurso: Recurso): Promise<RawPermiso | null> {
       };
     }
     case "notificaciones": {
-      if (!Notifications) {
-        return { granted: false, canAskAgain: false, status: "denied" };
-      }
-      const p = await Notifications.requestPermissionsAsync();
-      return {
-        granted: p.granted,
-        canAskAgain: p.canAskAgain,
-        status: p.status,
-      };
+      // TEMPORAL: No hace nada
+      return { granted: false, canAskAgain: false, status: "denied" };
     }
     default:
       return null;
