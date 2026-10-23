@@ -51,10 +51,8 @@ export default function AdjuntarFoto() {
   };
 
   const confirmarFoto = () => {
-    if (image) {
-      guardarBorrador({ fotoUri: image });
-    }
-    router.back(); // <-- Volvemos atrás de forma normal
+    if (image) guardarBorrador({ fotoUri: image });
+    router.back();
   };
 
   return (
