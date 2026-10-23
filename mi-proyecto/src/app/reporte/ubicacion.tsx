@@ -58,10 +58,13 @@ export default function MarcarUbicacion() {
   };
 
   const confirmar = () => {
-    // Acá después guardaremos la ubicación en el formulario
-    router.back();
+    if (!ubicacion) return;
+    // Volvemos al formulario mandando la ubicación
+    router.push({
+      pathname: "/reporte/nuevo",
+      params: { ubicacion: ubicacion.valor },
+    });
   };
-
   // 1. Cargando
   if (estado === "cargando") {
     return (

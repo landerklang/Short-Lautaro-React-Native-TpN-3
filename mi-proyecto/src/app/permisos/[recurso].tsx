@@ -1,4 +1,4 @@
-// app/permisos/[recurso].tsx
+import { useEffect } from "react";
 import { useLocalSearchParams, router } from "expo-router";
 import {
   View,
@@ -7,12 +7,28 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from "react-native";
-import { usePermiso } from "../../hooks/usepermiso";
-import { BENEFICIOS, Recurso, NOMBRES } from "../../lib/permisos";
+import { usePermiso } from "../../hooks/usepermiso"; // Asegurate de que la ruta a tu hook sea correcta
+import { BENEFICIOS, NOMBRES, Recurso } from "../../../src/lib/permisos";
 
 export default function PermisoPrevioModal() {
   const { recurso } = useLocalSearchParams<{ recurso: Recurso }>();
-  const { estado, pedir, abrirAjustes } = usePermiso(recurso);
+  const { estado, pedir, abrirAjustes } = usePermiso(recurso ?? "camara");
+
+  // SOLUCIÓN AL ERROR: Cerramos el modal DESPUÉS de que se renderice
+  useEffect(() => {
+    if (estado === "concedido") {
+      router.back();
+    }
+  }, [estado]);
+
+  if (!recurso) {
+    return (
+      <View style={styles.container}>
+        <Text>Recurso no especificado.</Text>
+        <Button title="Volver" onPress={() => router.back()} />
+      </View>
+    );
+  }
 
   if (estado === "cargando") {
     return (
@@ -22,9 +38,8 @@ export default function PermisoPrevioModal() {
     );
   }
 
+  // Si está concedido, mostramos null mientras el useEffect lo cierra
   if (estado === "concedido") {
-    // Si ya está concedido, cerrar automáticamente
-    router.back();
     return null;
   }
 
@@ -42,7 +57,6 @@ export default function PermisoPrevioModal() {
           title="Continuar"
           onPress={async () => {
             await pedir();
-            router.back();
           }}
         />
       ) : (

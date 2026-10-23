@@ -50,8 +50,8 @@ export default function AdjuntarFoto() {
   };
 
   const confirmarFoto = () => {
-    // Acá después guardaremos la foto en el formulario
-    router.back();
+    // Volvemos al formulario mandando la foto como parámetro
+    router.push({ pathname: "/reporte/nuevo", params: { foto: image } });
   };
 
   return (
