@@ -4,6 +4,7 @@ import { View, Text, Button, StyleSheet, Image, Alert } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import { router } from "expo-router";
 import { usePermiso } from "../../hooks/usepermiso";
+import { guardarBorrador } from "../../lib/reportes";
 
 export default function AdjuntarFoto() {
   const [image, setImage] = useState<string | null>(null);
@@ -50,8 +51,10 @@ export default function AdjuntarFoto() {
   };
 
   const confirmarFoto = () => {
-    // Volvemos al formulario mandando la foto como parámetro
-    router.push({ pathname: "/reporte/nuevo", params: { foto: image } });
+    if (image) {
+      guardarBorrador({ fotoUri: image });
+    }
+    router.back(); // <-- Volvemos atrás de forma normal
   };
 
   return (

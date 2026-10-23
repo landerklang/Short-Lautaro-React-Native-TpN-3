@@ -11,6 +11,7 @@ import {
 import * as Location from "expo-location";
 import { router } from "expo-router";
 import { usePermiso } from "../../hooks/usepermiso";
+import { guardarBorrador } from "../../lib/reportes";
 
 const SECTORES = ["Patio", "Estacionamiento", "Pasillo", "Aula", "Otro"];
 
@@ -59,11 +60,8 @@ export default function MarcarUbicacion() {
 
   const confirmar = () => {
     if (!ubicacion) return;
-    // Volvemos al formulario mandando la ubicación
-    router.push({
-      pathname: "/reporte/nuevo",
-      params: { ubicacion: ubicacion.valor },
-    });
+    guardarBorrador({ ubicacion: ubicacion.valor });
+    router.back(); // <-- Volvemos atrás de forma normal
   };
   // 1. Cargando
   if (estado === "cargando") {

@@ -1,5 +1,5 @@
 // app/reporte/nuevo.tsx
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -10,20 +10,22 @@ import {
   Image,
   Alert,
 } from "react-native";
-import { router, useLocalSearchParams } from "expo-router";
-import { crearReporte } from "../../lib/reportes";
+import { router, useFocusEffect } from "expo-router";
+import { crearReporte, borrador, limpiarBorrador } from "../../lib/reportes";
 
 export default function NuevoReporte() {
-  // Estados del formulario
   const [titulo, setTitulo] = useState("");
   const [descripcion, setDescripcion] = useState("");
   const [aula, setAula] = useState("");
   const [categoria, setCategoria] = useState("electricidad");
 
-  // Acá recibimos los datos que vuelven de las otras pantallas
-  const params = useLocalSearchParams();
-  const fotoUri = params.foto as string;
-  const ubicacion = params.ubicacion as string;
+  // Cada vez que volvemos a esta pantalla, leemos el borrador (si hay foto o ubicación)
+  useFocusEffect(
+    useCallback(() => {
+      // Forzamos un re-render para leer los valores actualizados del borrador
+      setTitulo((t) => t);
+    }, []),
+  );
 
   const guardar = () => {
     if (!titulo || !descripcion || !aula) {
@@ -34,24 +36,24 @@ export default function NuevoReporte() {
       return;
     }
 
-    // Guardamos en nuestro Store
     crearReporte({
       titulo,
       descripcion,
       aula,
       categoria,
-      fotoUri: fotoUri || undefined,
-      ubicacion: ubicacion || undefined,
+      fotoUri: borrador.fotoUri || undefined,
+      ubicacion: borrador.ubicacion || undefined,
     });
 
+    limpiarBorrador(); // Limpiamos para el próximo reporte
     Alert.alert("Éxito", "Reporte creado correctamente");
-    router.replace("/"); // Volvemos al inicio y recargamos
+    router.replace("/");
   };
 
   return (
     <ScrollView
       style={styles.container}
-      contentContainerStyle={{ paddingBottom: 40 }}
+      contentContainerStyle={{ paddingBottom: 60 }}
     >
       <Text style={styles.title}>Nuevo Reporte</Text>
 
@@ -80,7 +82,6 @@ export default function NuevoReporte() {
           onChangeText={setAula}
           placeholder="Ej: Aula 204"
         />
-        {/* Navegamos al escáner. Si vuelve un código, lo seteamos en el aula */}
         <Button
           title="Escanear"
           onPress={() => router.push("/reporte/escanear")}
@@ -101,23 +102,25 @@ export default function NuevoReporte() {
 
       <View style={{ height: 20 }} />
 
-      {/* Botón para adjuntar foto */}
       <Button
-        title={fotoUri ? "Cambiar Foto" : "Adjuntar Foto"}
+        title={borrador.fotoUri ? "Cambiar Foto" : "Adjuntar Foto"}
         onPress={() => router.push("/reporte/foto")}
       />
-      {fotoUri && <Image source={{ uri: fotoUri }} style={styles.preview} />}
+      {borrador.fotoUri ? (
+        <Image source={{ uri: borrador.fotoUri }} style={styles.preview} />
+      ) : null}
 
       <View style={{ height: 16 }} />
 
-      {/* Botón para ubicación */}
       <Button
-        title={ubicacion ? "Cambiar Ubicación" : "Marcar Ubicación"}
+        title={borrador.ubicacion ? "Cambiar Ubicación" : "Marcar Ubicación"}
         onPress={() => router.push("/reporte/ubicacion")}
       />
-      {ubicacion && (
-        <Text style={styles.ubicacionText}>Ubicación: {ubicacion}</Text>
-      )}
+      {borrador.ubicacion ? (
+        <Text style={styles.ubicacionText}>
+          Ubicación: {borrador.ubicacion}
+        </Text>
+      ) : null}
 
       <View style={{ height: 40 }} />
 
