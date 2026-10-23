@@ -1,16 +1,10 @@
-import { View, Text, Button, StyleSheet } from "react-native";
-import { router } from "expo-router";
+import { View, Text, StyleSheet } from "react-native";
 
 export default function Inicio() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Mantenimiento IPF</Text>
-      <Text style={styles.subtitle}>Lista de reportes (próximamente)</Text>
-
-      <Button
-        title="Ir a Nuevo Reporte (Prueba)"
-        onPress={() => router.push("/reporte/nuevo")}
-      />
+      <Text style={styles.subtitle}>Lista de reportes (Próximamente)</Text>
     </View>
   );
 }
@@ -21,7 +15,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
+    backgroundColor: "#fff",
   },
   title: { fontSize: 24, fontWeight: "bold", marginBottom: 10 },
-  subtitle: { fontSize: 16, color: "#666", marginBottom: 20 },
+  subtitle: { fontSize: 16, color: "#666" },
 });
