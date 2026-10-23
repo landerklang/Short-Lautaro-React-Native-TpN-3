@@ -1,19 +1,36 @@
-// app/_layout.tsx
-import { Stack } from "expo-router";
+import { Tabs } from "expo-router";
+import { Ionicons } from "@expo/vector-icons"; // Si no tenés @expo/vector-icons, avisame y usamos texto
 
-export default function RootLayout() {
+export default function TabLayout() {
   return (
-    <Stack>
-      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      <Stack.Screen name="reporte" options={{ headerShown: false }} />
-      <Stack.Screen
-        name="permisos/[recurso]"
+    <Tabs screenOptions={{ tabBarActiveTintColor: "#005bb5" }}>
+      <Tabs.Screen
+        name="index"
         options={{
-          presentation: "modal",
-          title: "Permiso necesario",
+          title: "Reportes",
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="list" size={24} color={color} />
+          ),
         }}
       />
-      <Stack.Screen name="ajustes-app" options={{ title: "Ajustes" }} />
-    </Stack>
+      <Tabs.Screen
+        name="avisos"
+        options={{
+          title: "Avisos",
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="notifications" size={24} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="permisos"
+        options={{
+          title: "Permisos",
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="lock-closed" size={24} color={color} />
+          ),
+        }}
+      />
+    </Tabs>
   );
 }
