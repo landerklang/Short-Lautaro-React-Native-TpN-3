@@ -1,18 +1,22 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { useColorScheme } from 'react-native';
+// app/_layout.tsx
+import { Stack } from "expo-router";
 
-import { AnimatedSplashOverlay } from '@/components/animated-icon';
-import AppTabs from '@/components/app-tabs';
-
-SplashScreen.preventAutoHideAsync();
-
-export default function TabLayout() {
-  const colorScheme = useColorScheme();
+export default function RootLayout() {
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <AnimatedSplashOverlay />
-      <AppTabs />
-    </ThemeProvider>
+    <Stack>
+      {/* Esta es la carpeta de las pestañas (Reportes, Avisos, Permisos) */}
+      <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+
+      {/* Las rutas que vamos a usar después */}
+      <Stack.Screen name="reporte" options={{ headerShown: false }} />
+      <Stack.Screen
+        name="permisos/[recurso]"
+        options={{
+          presentation: "modal",
+          title: "Permiso necesario",
+        }}
+      />
+      <Stack.Screen name="ajustes-app" options={{ title: "Ajustes" }} />
+    </Stack>
   );
 }

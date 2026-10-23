@@ -1,5 +1,5 @@
 import { Tabs } from "expo-router";
-import { Ionicons } from "@expo/vector-icons"; // Si no tenés @expo/vector-icons, avisame y usamos texto
+import { Ionicons } from "@expo/vector-icons";
 
 export default function TabLayout() {
   return (
@@ -13,7 +13,7 @@ export default function TabLayout() {
           ),
         }}
       />
-      <Tabs.Screen
+      {/* <Tabs.Screen
         name="avisos"
         options={{
           title: "Avisos",
@@ -30,7 +30,7 @@ export default function TabLayout() {
             <Ionicons name="lock-closed" size={24} color={color} />
           ),
         }}
-      />
+      /> */}
     </Tabs>
   );
 }
