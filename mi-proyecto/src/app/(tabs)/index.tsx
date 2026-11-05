@@ -1,6 +1,13 @@
 // app/(tabs)/index.tsx
 import { useState, useCallback } from "react";
-import { View, Text, Button, StyleSheet, FlatList } from "react-native";
+import {
+  View,
+  Text,
+  Button,
+  StyleSheet,
+  FlatList,
+  TouchableOpacity,
+} from "react-native";
 import { router, useFocusEffect } from "expo-router";
 import { obtenerReportes, Reporte } from "../../lib/reportes";
 
@@ -37,7 +44,15 @@ export default function Inicio() {
           data={reportes}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
-            <View style={styles.tarjeta}>
+            <TouchableOpacity
+              style={styles.tarjeta}
+              onPress={() =>
+                router.push({
+                  pathname: "/reporte/[id]",
+                  params: { id: item.id },
+                })
+              }
+            >
               <Text style={styles.tarjetaTitulo}>{item.titulo}</Text>
               <Text style={styles.tarjetaInfo}>
                 Aula: {item.aula} | Categoría: {item.categoria}
@@ -45,7 +60,7 @@ export default function Inicio() {
               <Text style={styles.tarjetaEstado}>
                 Estado: {item.estado.toUpperCase()}
               </Text>
-            </View>
+            </TouchableOpacity>
           )}
         />
       )}

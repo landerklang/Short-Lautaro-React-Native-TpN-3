@@ -42,3 +42,37 @@ export const cambiarEstadoReporte = (
     r.id === id ? { ...r, estado: nuevoEstado } : r,
   );
 };
+
+export let borrador = {
+  fotoUri: "",
+  ubicacion: "",
+  version: 0, // <-- NUEVO: Para forzar actualizaciones
+};
+
+export const guardarBorrador = (datos: Partial<typeof borrador>) => {
+  borrador = { ...borrador, ...datos, version: borrador.version + 1 };
+};
+
+export const limpiarBorrador = () => {
+  borrador = { fotoUri: "", ubicacion: "", version: 0 };
+};
+
+// src/lib/reportes.ts
+export interface Aviso {
+  id: string;
+  mensaje: string;
+  fecha: number;
+}
+
+let avisos: Aviso[] = [];
+
+export const obtenerAvisos = () => avisos;
+
+export const agregarAviso = (mensaje: string) => {
+  const nuevoAviso: Aviso = {
+    id: Math.random().toString(36).substring(2, 9),
+    mensaje,
+    fecha: Date.now(),
+  };
+  avisos = [nuevoAviso, ...avisos];
+};

@@ -19,11 +19,13 @@ export default function NuevoReporte() {
   const [aula, setAula] = useState("");
   const [categoria, setCategoria] = useState("electricidad");
 
-  // Cada vez que volvemos a esta pantalla, leemos el borrador (si hay foto o ubicación)
+  // ESTADO CLAVE: Guardamos una copia del borrador local para que React reaccione
+  const [borradorLocal, setBorradorLocal] = useState({ ...borrador });
+
+  // Cada vez que volvés a esta pantalla (después de un back), actualizamos la copia
   useFocusEffect(
     useCallback(() => {
-      // Forzamos un re-render para leer los valores actualizados del borrador
-      setTitulo((t) => t);
+      setBorradorLocal({ ...borrador });
     }, []),
   );
 
@@ -41,11 +43,12 @@ export default function NuevoReporte() {
       descripcion,
       aula,
       categoria,
-      fotoUri: borrador.fotoUri || undefined,
-      ubicacion: borrador.ubicacion || undefined,
+      fotoUri: borradorLocal.fotoUri || undefined,
+      ubicacion: borradorLocal.ubicacion || undefined,
     });
 
-    limpiarBorrador(); // Limpiamos para el próximo reporte
+    limpiarBorrador();
+    setBorradorLocal({ ...borrador }); // Limpiamos la vista local
     Alert.alert("Éxito", "Reporte creado correctamente");
     router.replace("/");
   };
@@ -102,23 +105,26 @@ export default function NuevoReporte() {
 
       <View style={{ height: 20 }} />
 
+      {/* Usamos borradorLocal en lugar de borrador directo */}
       <Button
-        title={borrador.fotoUri ? "Cambiar Foto" : "Adjuntar Foto"}
+        title={borradorLocal.fotoUri ? "Cambiar Foto" : "Adjuntar Foto"}
         onPress={() => router.push("/reporte/foto")}
       />
-      {borrador.fotoUri ? (
-        <Image source={{ uri: borrador.fotoUri }} style={styles.preview} />
+      {borradorLocal.fotoUri ? (
+        <Image source={{ uri: borradorLocal.fotoUri }} style={styles.preview} />
       ) : null}
 
       <View style={{ height: 16 }} />
 
       <Button
-        title={borrador.ubicacion ? "Cambiar Ubicación" : "Marcar Ubicación"}
+        title={
+          borradorLocal.ubicacion ? "Cambiar Ubicación" : "Marcar Ubicación"
+        }
         onPress={() => router.push("/reporte/ubicacion")}
       />
-      {borrador.ubicacion ? (
+      {borradorLocal.ubicacion ? (
         <Text style={styles.ubicacionText}>
-          Ubicación: {borrador.ubicacion}
+          Ubicación: {borradorLocal.ubicacion}
         </Text>
       ) : null}
 

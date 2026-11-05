@@ -61,7 +61,7 @@ export default function MarcarUbicacion() {
   const confirmar = () => {
     if (!ubicacion) return;
     guardarBorrador({ ubicacion: ubicacion.valor });
-    router.back(); // <-- Volvemos atrás de forma normal
+    router.back();
   };
   // 1. Cargando
   if (estado === "cargando") {

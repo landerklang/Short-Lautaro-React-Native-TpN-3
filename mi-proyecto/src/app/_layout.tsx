@@ -3,8 +3,10 @@ import { Stack } from "expo-router";
 export default function RootLayout() {
   return (
     <Stack>
+      {/* Las pestañas de abajo (Reportes, Avisos, Permisos) */}
       <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-      {/* <Stack.Screen name="reporte" options={{ headerShown: false }} /> */}
+
+      {/* El modal de permisos */}
       <Stack.Screen
         name="permisos/[recurso]"
         options={{
@@ -12,6 +14,8 @@ export default function RootLayout() {
           title: "Permiso necesario",
         }}
       />
+
+      {/* Pantalla de ajustes */}
       <Stack.Screen name="ajustes-app" options={{ title: "Ajustes" }} />
     </Stack>
   );
